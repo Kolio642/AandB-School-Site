@@ -1,0 +1,51 @@
+{
+  "site": {
+    "name": "School A&B",
+    "description": "School of Mathematics and Informatics A&B - Shumen"
+  },
+  "nav": {
+    "home": "Home",
+    "about": "About Us",
+    "history": "History",
+    "team": "Team",
+    "education": "Education",
+    "methodology": "Methodology",
+    "ageGroups": "Age Groups",
+    "process": "Learning Process",
+    "achievements": "Achievements",
+    "news": "News",
+    "gallery": "Gallery",
+    "contacts": "Contacts"
+  },
+  "home": {
+    "hero": {
+      "title": "School A&B",
+      "subtitle": "Preparing future professionals in the field of programming",
+      "cta": "Learn More"
+    },
+    "about": {
+      "title": "About Us",
+      "description": "School of Mathematics and Informatics A&B was established on April 1, 1998 in Shumen to support the extracurricular training of students from grades II to XII in mathematics, informatics, and information technologies."
+    },
+    "achievements": {
+      "title": "Achievements",
+      "description": "Students who study at the School of Mathematics and Informatics \"A&B\" traditionally take prize places in all competitions in which they participate."
+    },
+    "news": {
+      "title": "Latest News",
+      "viewAll": "View All"
+    }
+  },
+  "footer": {
+    "address": "Shumen 9700, 13 Hristo Botev St. (kazandzhiyska)",
+    "phone": "tel. 054/831008",
+    "copyright": "© 2024 School A&B | All rights reserved"
+  },
+  "buttons": {
+    "readMore": "Read More",
+    "viewAll": "View All",
+    "contact": "Contact Us",
+    "submit": "Submit",
+    "back": "Back"
+  }
+} 

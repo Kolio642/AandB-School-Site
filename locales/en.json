@@ -1,0 +1,79 @@
+{
+  "navigation": {
+    "home": "Home",
+    "about": "About",
+    "programs": "Programs",
+    "admissions": "Admissions",
+    "news": "News",
+    "contacts": "Contacts"
+  },
+  "home": {
+    "hero": {
+      "title": "A&B School - Excellence in Education",
+      "subtitle": "Providing quality education and fostering the development of young minds since 1995",
+      "cta": "Learn More"
+    },
+    "features": {
+      "title": "Why Choose A&B School",
+      "subtitle": "We offer a comprehensive educational experience focused on academic excellence and personal growth",
+      "curriculum": {
+        "title": "Modern Curriculum",
+        "description": "Our curriculum is designed to meet international standards while focusing on individual student needs"
+      },
+      "teachers": {
+        "title": "Expert Teachers",
+        "description": "Our teachers are highly qualified professionals dedicated to nurturing student potential"
+      },
+      "achievements": {
+        "title": "Outstanding Results",
+        "description": "Our students consistently achieve excellent results in national and international competitions"
+      },
+      "facilities": {
+        "title": "Modern Facilities",
+        "description": "Our school is equipped with state-of-the-art facilities to enhance the learning experience"
+      }
+    },
+    "testimonials": {
+      "title": "What Our Community Says",
+      "subtitle": "Hear from our students, parents, and alumni about their experiences at A&B School",
+      "testimonial1": {
+        "quote": "A&B School provided my child with an exceptional education and a supportive environment that helped them grow both academically and personally.",
+        "author": "Maria Johnson",
+        "role": "Parent"
+      },
+      "testimonial2": {
+        "quote": "The teachers at A&B School are truly dedicated to their students' success. They go above and beyond to ensure each student reaches their full potential.",
+        "author": "David Smith",
+        "role": "Former Student"
+      },
+      "testimonial3": {
+        "quote": "The curriculum at A&B School prepared me exceptionally well for university. I developed critical thinking skills that have been invaluable in my career.",
+        "author": "Elena Petrova",
+        "role": "Alumna"
+      }
+    },
+    "cta": {
+      "title": "Join Our School Community",
+      "subtitle": "Take the first step towards providing your child with an exceptional educational experience"
+    }
+  },
+  "buttons": {
+    "contact": "Contact Us",
+    "readMore": "Read More",
+    "apply": "Apply Now",
+    "learnMore": "Learn More"
+  },
+  "footer": {
+    "about": "About A&B School",
+    "description": "A&B School is dedicated to providing quality education and fostering the development of young minds in a supportive and innovative environment.",
+    "contact": "Contact Information",
+    "address": "123 Education Street, Sofia, Bulgaria",
+    "phone": "+359 2 123 4567",
+    "email": "info@abschool.bg",
+    "links": "Quick Links",
+    "history": "Our History",
+    "team": "Our Team",
+    "achievements": "Achievements",
+    "copyright": "© {year} A&B School. All rights reserved."
+  }
+} 
