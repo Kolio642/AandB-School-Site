@@ -2,11 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: [],
+    unoptimized: true,
   },
-  experimental: {
-    missingSuspenseWithCSRBailout: false,
-  },
+  output: 'standalone',
+  trailingSlash: false,
 };
 
-module.exports = nextConfig; 
+module.exports = nextConfig;

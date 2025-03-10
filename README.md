@@ -28,14 +28,14 @@ This website is built for A&B School, providing information about the school's e
 
 ### Prerequisites
 
-- Node.js 18.17 or later
+- Node.js 18 or later
 - npm or yarn
 
 ### Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/AandB-School-Site.git
+   git clone https://github.com/Kolio642/AandB-School-Site.git
    cd AandB-School-Site
    ```
 
@@ -43,30 +43,67 @@ This website is built for A&B School, providing information about the school's e
    ```bash
    npm install
    # or
-   yarn
+   yarn install
    ```
 
-3. Start the development server:
+3. Run the development server:
    ```bash
    npm run dev
    # or
    yarn dev
    ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### Project Structure
+## Project Structure
 
-- `/src/app`: Next.js App Router pages
-- `/src/components`: Reusable React components
-- `/src/lib`: Utility functions and helpers
-- `/src/types`: TypeScript type definitions
-- `/locales`: Translation files for internationalization
-- `/public`: Static assets
+```
+AandB-School-Site/
+├── .cloudflare/         # Cloudflare configuration
+├── locales/             # Translation files
+├── public/              # Static assets
+├── src/
+│   ├── app/             # Next.js App Router
+│   ├── components/      # Reusable UI components
+│   ├── data/            # Static data and content
+│   ├── lib/             # Utility functions
+│   ├── styles/          # Global styles
+│   └── types/           # TypeScript type definitions
+├── .gitignore
+├── next.config.js       # Next.js configuration
+├── package.json
+├── postcss.config.js
+├── tailwind.config.ts
+└── tsconfig.json
+```
 
-## Deployment
+## Deployment to Cloudflare Pages
 
-This website can be deployed to any hosting service that supports Next.js applications, such as Vercel, Netlify, or a traditional hosting provider.
+### Automatic Deployment (via GitHub)
+
+1. Push your code to GitHub
+2. Connect your repository to Cloudflare Pages
+3. Configure build settings:
+   - Build command: `npm run build`
+   - Build output directory: `.next`
+   - Environment variables: Set `NODE_VERSION` to `18`
+
+### Manual Deployment
+
+1. Install Wrangler CLI:
+   ```bash
+   npm install -g wrangler
+   ```
+
+2. Login to Cloudflare:
+   ```bash
+   wrangler login
+   ```
+
+3. Build and deploy:
+   ```bash
+   npm run deploy
+   ```
 
 ## License
 
