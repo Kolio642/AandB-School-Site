@@ -8,14 +8,16 @@ import { useCallback } from 'react';
 
 interface LanguageSwitcherProps {
   locale: Locale;
+  variant?: 'default' | 'pill';
 }
 
 /**
  * Language Switcher component that allows users to change the application language
  * 
  * @param locale - The current locale being used in the application
+ * @param variant - Visual variant of the language switcher (default or pill)
  */
-export function LanguageSwitcher({ locale }: LanguageSwitcherProps) {
+export function LanguageSwitcher({ locale, variant = 'default' }: LanguageSwitcherProps) {
   const pathname = usePathname();
   
   /**
@@ -51,13 +53,35 @@ export function LanguageSwitcher({ locale }: LanguageSwitcherProps) {
     return null;
   }
   
+  if (variant === 'pill') {
+    return (
+      <div className="flex items-center overflow-hidden rounded-full bg-muted/50 p-1 text-sm" aria-label="Language selector">
+        {locales.map((lang) => (
+          <Link 
+            key={lang} 
+            href={createLocalePath(lang)}
+            aria-label={`Switch to ${lang === 'en' ? 'English' : 'Bulgarian'}`}
+            aria-current={locale === lang ? 'page' : undefined}
+            className={`rounded-full px-3 py-1 font-medium transition-colors ${
+              locale === lang 
+                ? 'bg-background text-foreground shadow-sm' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {lang.toUpperCase()}
+          </Link>
+        ))}
+      </div>
+    );
+  }
+  
   return (
     <div className="flex items-center gap-1" aria-label="Language selector">
       {locales.map((lang) => (
         <Link 
           key={lang} 
           href={createLocalePath(lang)}
-          aria-label={`Switch to ${lang.toUpperCase()} language`}
+          aria-label={`Switch to ${lang === 'en' ? 'English' : 'Bulgarian'}`}
           aria-current={locale === lang ? 'page' : undefined}
         >
           <Button 

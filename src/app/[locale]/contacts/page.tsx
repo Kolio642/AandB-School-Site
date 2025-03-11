@@ -1,7 +1,22 @@
 import { Locale, locales } from '@/lib/i18n';
 import { Metadata } from 'next';
-import { MapPin, Phone, Mail, Clock, AlertCircle } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { OpenStreetMap } from '@/components/open-street-map';
+import { MapPin, Phone, Mail, Clock } from 'lucide-react';
+
+// Dynamically import the contact form component to avoid TypeScript issues
+const ContactForm = dynamic(() => import('@/app/[locale]/contacts/contact-form'), {
+  ssr: false,
+  loading: () => (
+    <div className="animate-pulse space-y-4">
+      <div className="h-10 bg-gray-200 rounded w-full"></div>
+      <div className="h-10 bg-gray-200 rounded w-full"></div>
+      <div className="h-10 bg-gray-200 rounded w-full"></div>
+      <div className="h-32 bg-gray-200 rounded w-full"></div>
+      <div className="h-10 bg-gray-200 rounded w-full"></div>
+    </div>
+  )
+});
 
 interface ContactsPageProps {
   params: {
@@ -36,54 +51,64 @@ export default function ContactsPage({ params }: ContactsPageProps) {
   
   // School coordinates (Shumen, Bulgaria)
   const schoolCoordinates = {
-    latitude: 43.270241,
-    longitude: 26.923351
+    latitude: 43.27085906930125,
+    longitude: 26.91861753015853
   };
   
   return (
-    <main className="py-16">
-      <div className="container">
-        {/* Page Title */}
-        <div className="max-w-4xl mx-auto text-center mb-12">
-          <h1 className="text-4xl font-bold mb-6 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+    <main className="py-8 md:py-16">
+      <div className="container px-4 md:px-6">
+        {/* Page Title with decorative elements */}
+        <div className="max-w-4xl mx-auto text-center mb-8 md:mb-12 relative">
+          {/* Decorative circles */}
+          <div className="absolute -top-12 -left-12 w-24 h-24 bg-primary/5 rounded-full hidden md:block" aria-hidden="true"></div>
+          <div className="absolute -bottom-8 -right-10 w-16 h-16 bg-purple-500/5 rounded-full hidden md:block" aria-hidden="true"></div>
+          
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
             {locale === 'en' ? 'Contact Us' : 'Свържете се с нас'}
           </h1>
           
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
             {locale === 'en' 
               ? 'Have questions about our programs or want to enroll your child? We\'d love to hear from you!' 
               : 'Имате въпроси относно нашите програми или искате да запишете детето си? Ще се радваме да се свържете с нас!'}
           </p>
+          
+          {/* Decorative line */}
+          <div className="w-24 h-1 bg-gradient-to-r from-primary to-purple-600 mx-auto mt-6 rounded-full"></div>
         </div>
         
         {/* Contact Information and Map */}
-        <div className="grid gap-10 md:grid-cols-2 lg:gap-16 items-start">
+        <div className="grid gap-6 md:gap-10 lg:gap-16 md:grid-cols-2 items-start">
           {/* Contact Information */}
-          <div className="p-8 rounded-2xl shadow-lg bg-background border border-muted">
-            <div className="space-y-8">
+          <div className="p-6 md:p-8 rounded-2xl shadow-lg bg-background border border-muted relative overflow-hidden">
+            {/* Decorative background pattern */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16" aria-hidden="true"></div>
+            
+            <div className="space-y-6 md:space-y-8 relative z-10">
               <div className="flex items-start gap-4">
-                <div className="p-3 rounded-full bg-primary/10 text-primary">
-                  <MapPin className="h-6 w-6" />
+                <div className="p-3 rounded-full bg-primary/10 text-primary flex-shrink-0">
+                  <MapPin className="h-5 w-5 md:h-6 md:w-6" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-xl mb-2">
+                  <h2 className="font-semibold text-lg md:text-xl mb-1 md:mb-2">
                     {locale === 'en' ? 'Address' : 'Адрес'}
                   </h2>
-                  <address className="not-italic text-muted-foreground">
+                  <address className="not-italic text-muted-foreground text-sm md:text-base">
                     {schoolAddress}
                   </address>
                 </div>
               </div>
               
               <div className="flex items-start gap-4">
-                <div className="p-3 rounded-full bg-primary/10 text-primary">
-                  <Phone className="h-6 w-6" />
+                <div className="p-3 rounded-full bg-primary/10 text-primary flex-shrink-0">
+                  <Phone className="h-5 w-5 md:h-6 md:w-6" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-xl mb-2">
+                  <h2 className="font-semibold text-lg md:text-xl mb-1 md:mb-2">
                     {locale === 'en' ? 'Phone' : 'Телефон'}
                   </h2>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground text-sm md:text-base">
                     <a 
                       href="tel:+35954831008" 
                       className="hover:text-primary transition-colors"
@@ -95,14 +120,14 @@ export default function ContactsPage({ params }: ContactsPageProps) {
               </div>
               
               <div className="flex items-start gap-4">
-                <div className="p-3 rounded-full bg-primary/10 text-primary">
-                  <Mail className="h-6 w-6" />
+                <div className="p-3 rounded-full bg-primary/10 text-primary flex-shrink-0">
+                  <Mail className="h-5 w-5 md:h-6 md:w-6" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-xl mb-2">
+                  <h2 className="font-semibold text-lg md:text-xl mb-1 md:mb-2">
                     {locale === 'en' ? 'Email' : 'Имейл'}
                   </h2>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground text-sm md:text-base">
                     <a 
                       href="mailto:info@abschool.bg" 
                       className="hover:text-primary transition-colors"
@@ -114,14 +139,14 @@ export default function ContactsPage({ params }: ContactsPageProps) {
               </div>
               
               <div className="flex items-start gap-4">
-                <div className="p-3 rounded-full bg-primary/10 text-primary">
-                  <Clock className="h-6 w-6" />
+                <div className="p-3 rounded-full bg-primary/10 text-primary flex-shrink-0">
+                  <Clock className="h-5 w-5 md:h-6 md:w-6" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-xl mb-2">
+                  <h2 className="font-semibold text-lg md:text-xl mb-1 md:mb-2">
                     {locale === 'en' ? 'Office Hours' : 'Работно време'}
                   </h2>
-                  <div className="text-muted-foreground space-y-1">
+                  <div className="text-muted-foreground text-sm md:text-base space-y-1">
                     <p>
                       <span className="font-medium">
                         {locale === 'en' ? 'Monday - Friday:' : 'Понеделник - Петък:'}
@@ -147,7 +172,7 @@ export default function ContactsPage({ params }: ContactsPageProps) {
           </div>
           
           {/* OpenStreetMap */}
-          <div className="h-[500px] rounded-2xl overflow-hidden shadow-lg">
+          <div className="h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-lg border border-muted">
             <OpenStreetMap 
               latitude={schoolCoordinates.latitude}
               longitude={schoolCoordinates.longitude}
@@ -159,69 +184,16 @@ export default function ContactsPage({ params }: ContactsPageProps) {
         </div>
         
         {/* Contact Form Section */}
-        <div className="max-w-2xl mx-auto mt-16 p-8 rounded-2xl shadow-lg bg-background border border-muted">
-          <h2 className="text-2xl font-bold mb-6 text-center">
+        <div className="max-w-2xl mx-auto mt-10 md:mt-16 p-6 md:p-8 rounded-2xl shadow-lg bg-background border border-muted relative overflow-hidden">
+          {/* Decorative shapes */}
+          <div className="absolute -top-10 -left-10 w-20 h-20 bg-primary/5 rotate-45 hidden md:block" aria-hidden="true"></div>
+          <div className="absolute -bottom-10 -right-10 w-20 h-20 bg-purple-500/5 rotate-12 hidden md:block" aria-hidden="true"></div>
+          
+          <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-center">
             {locale === 'en' ? 'Send Us a Message' : 'Изпратете ни съобщение'}
           </h2>
           
-          <form className="space-y-6">
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium mb-2">
-                  {locale === 'en' ? 'Name' : 'Име'}
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  className="w-full rounded-md border border-input bg-background px-4 py-2 text-sm"
-                  placeholder={locale === 'en' ? 'Your name' : 'Вашето име'}
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium mb-2">
-                  {locale === 'en' ? 'Email' : 'Имейл'}
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  className="w-full rounded-md border border-input bg-background px-4 py-2 text-sm"
-                  placeholder={locale === 'en' ? 'Your email' : 'Вашият имейл'}
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="subject" className="block text-sm font-medium mb-2">
-                {locale === 'en' ? 'Subject' : 'Тема'}
-              </label>
-              <input
-                type="text"
-                id="subject"
-                className="w-full rounded-md border border-input bg-background px-4 py-2 text-sm"
-                placeholder={locale === 'en' ? 'Subject of your message' : 'Тема на вашето съобщение'}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="message" className="block text-sm font-medium mb-2">
-                {locale === 'en' ? 'Message' : 'Съобщение'}
-              </label>
-              <textarea
-                id="message"
-                rows={5}
-                className="w-full rounded-md border border-input bg-background px-4 py-2 text-sm resize-none"
-                placeholder={locale === 'en' ? 'Your message' : 'Вашето съобщение'}
-              ></textarea>
-            </div>
-            
-            <button
-              type="submit"
-              className="w-full bg-primary text-primary-foreground rounded-md px-4 py-3 font-medium hover:bg-primary/90 transition-colors"
-            >
-              {locale === 'en' ? 'Send Message' : 'Изпратете съобщение'}
-            </button>
-          </form>
+          <ContactForm locale={locale} />
         </div>
       </div>
     </main>

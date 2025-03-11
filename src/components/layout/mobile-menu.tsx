@@ -18,6 +18,11 @@ interface NavItem {
 interface MobileMenuProps {
   locale: Locale;
   navItems: NavItem[];
+  testimonial?: {
+    quote: string;
+    author: string;
+    role: string;
+  };
 }
 
 /**
@@ -25,8 +30,9 @@ interface MobileMenuProps {
  * 
  * @param locale - The current locale
  * @param navItems - The navigation items to display
+ * @param testimonial - Optional testimonial to display
  */
-export function MobileMenu({ locale, navItems }: MobileMenuProps) {
+export function MobileMenu({ locale, navItems, testimonial }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   
@@ -110,11 +116,18 @@ export function MobileMenu({ locale, navItems }: MobileMenuProps) {
         <div 
           ref={menuRef}
           id="mobile-menu"
-          className="fixed inset-0 top-16 z-50 bg-background p-6 animate-in slide-in-from-top-5"
+          className="fixed inset-0 top-16 z-50 bg-background p-6 animate-in slide-in-from-top-5 overflow-y-auto pb-20"
           role="dialog"
           aria-modal="true"
           aria-label="Mobile navigation menu"
         >
+          <div className="flex justify-between items-center mb-6">
+            <div className="text-xl font-bold">
+              A&B School
+            </div>
+            <LanguageSwitcher locale={locale} variant="pill" />
+          </div>
+          
           <nav className="flex flex-col gap-6">
             {navItems.map((item) => (
               <Link
@@ -129,10 +142,24 @@ export function MobileMenu({ locale, navItems }: MobileMenuProps) {
                 {item.label}
               </Link>
             ))}
-            <div className="mt-6">
-              <LanguageSwitcher locale={locale} />
-            </div>
           </nav>
+          
+          {testimonial && (
+            <div className="mt-10 border-t border-border pt-6">
+              <div className="text-3xl font-serif text-primary opacity-70 mb-2">"</div>
+              <blockquote className="italic text-muted-foreground mb-4">
+                "{testimonial.quote}"
+              </blockquote>
+              <div className="text-sm font-medium">
+                {testimonial.author}
+                {testimonial.role && (
+                  <span className="text-muted-foreground ml-1">
+                    — {testimonial.role}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
