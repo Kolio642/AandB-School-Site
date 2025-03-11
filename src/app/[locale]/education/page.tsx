@@ -1,10 +1,17 @@
-import { Locale } from '@/lib/i18n';
+import { Locale, locales } from '@/lib/i18n';
 import { Metadata } from 'next';
 
 interface EducationPageProps {
   params: {
     locale: Locale;
   };
+}
+
+// This function is required when using static export with dynamic routes
+export function generateStaticParams() {
+  return locales.map((locale) => ({
+    locale,
+  }));
 }
 
 export function generateMetadata({ params }: EducationPageProps): Metadata {

@@ -11,7 +11,7 @@ if ($LASTEXITCODE -eq 0) {
     
     # Deploy to Cloudflare Pages
     Write-Host "Deploying to Cloudflare Pages..." -ForegroundColor Yellow
-    npx wrangler pages deploy .next
+    npx wrangler pages deploy out --project-name aandb-school-website --commit-dirty=true
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Deployment completed successfully!" -ForegroundColor Green

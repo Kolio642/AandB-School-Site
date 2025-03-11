@@ -1,4 +1,4 @@
-import { Locale } from '@/lib/i18n';
+import { Locale, locales } from '@/lib/i18n';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -10,6 +10,13 @@ interface NewsPageProps {
   params: {
     locale: Locale;
   };
+}
+
+// This function is required when using static export with dynamic routes
+export function generateStaticParams() {
+  return locales.map((locale) => ({
+    locale,
+  }));
 }
 
 export function generateMetadata({ params }: NewsPageProps): Metadata {

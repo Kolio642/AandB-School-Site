@@ -1,0 +1,12 @@
+/* /index.html 200
+
+# Handle locale home pages
+/bg/ /bg/index.html 200
+/en/ /en/index.html 200
+
+# Handle nested routes for each locale 
+/bg/* /bg/index.html 200
+/en/* /en/index.html 200
+
+# Redirect root to default locale
+/ /bg/ 302 

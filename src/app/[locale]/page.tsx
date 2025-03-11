@@ -1,4 +1,4 @@
-import { Locale } from '@/lib/i18n';
+import { Locale, locales } from '@/lib/i18n';
 import { Metadata } from 'next';
 import { HeroSection } from '@/components/sections/hero-section';
 import { FeaturesSection } from '@/components/sections/features-section';
@@ -10,6 +10,13 @@ interface HomePageProps {
   params: {
     locale: Locale;
   };
+}
+
+// This function is required when using static export with dynamic routes
+export function generateStaticParams() {
+  return locales.map((locale) => ({
+    locale,
+  }));
 }
 
 export function generateMetadata({ params }: HomePageProps): Metadata {

@@ -3,9 +3,16 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   },
-  output: 'standalone',
-  trailingSlash: false,
+  output: 'export',
+  distDir: 'out',
+  trailingSlash: true,
 };
 
 module.exports = nextConfig;

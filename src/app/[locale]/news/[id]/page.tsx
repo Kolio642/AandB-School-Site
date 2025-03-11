@@ -1,8 +1,8 @@
-import { Locale } from '@/lib/i18n';
+import { Locale, locales } from '@/lib/i18n';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getNewsById } from '@/data/news';
+import { getNewsById, getAllNews } from '@/data/news';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
@@ -13,6 +13,25 @@ interface NewsDetailPageProps {
     locale: Locale;
     id: string;
   };
+}
+
+// This function is required when using static export with dynamic routes
+export function generateStaticParams() {
+  const news = getAllNews();
+  
+  // Generate all combinations of locale and news id
+  const params = [];
+  
+  for (const locale of locales) {
+    for (const newsItem of news) {
+      params.push({
+        locale,
+        id: newsItem.id
+      });
+    }
+  }
+  
+  return params;
 }
 
 export function generateMetadata({ params }: NewsDetailPageProps): Metadata {

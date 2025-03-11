@@ -1,8 +1,18 @@
-import { Locale, getTranslations, isValidLocale } from '@/lib/i18n';
+import { Locale, getTranslations, isValidLocale, locales } from '@/lib/i18n';
 import type { Metadata } from 'next';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { ErrorBoundary } from '@/components/error-boundary';
+
+/**
+ * Generate static paths for all locales
+ * This is required when using output: 'export' with dynamic routes
+ */
+export function generateStaticParams() {
+  return locales.map((locale) => ({
+    locale,
+  }));
+}
 
 /**
  * Generates metadata for the page based on the locale

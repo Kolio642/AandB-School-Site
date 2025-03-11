@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Redirecting...</title>
+  <script>
+    // Get the default locale from the URL or use 'bg' as fallback
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const validLocales = ['bg', 'en'];
+    let locale = 'bg'; // Default fallback
+    
+    // Check if the first part of the path is a valid locale
+    if (pathParts.length > 0 && validLocales.includes(pathParts[0])) {
+      locale = pathParts[0];
+    }
+    
+    // Redirect to the home page with the detected locale
+    window.location.href = '/' + locale;
+  </script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f3f4f6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      max-width: 500px;
+      padding: 40px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+    p {
+      color: #4b5563;
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Redirecting...</h1>
+    <p>You are being redirected to the homepage.</p>
+    <p>If you are not redirected automatically, <a href="/bg">click here</a>.</p>
+  </div>
+</body>
+</html> 

@@ -1,4 +1,4 @@
-import { Locale } from '@/lib/i18n';
+import { Locale, locales } from '@/lib/i18n';
 import { Metadata } from 'next';
 import { MapPin, Phone, Mail, Clock, AlertCircle } from 'lucide-react';
 import { OpenStreetMap } from '@/components/open-street-map';
@@ -7,6 +7,13 @@ interface ContactsPageProps {
   params: {
     locale: Locale;
   };
+}
+
+// This function is required when using static export with dynamic routes
+export function generateStaticParams() {
+  return locales.map((locale) => ({
+    locale,
+  }));
 }
 
 export function generateMetadata({ params }: ContactsPageProps): Metadata {

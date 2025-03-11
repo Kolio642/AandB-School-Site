@@ -3,15 +3,29 @@
 
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = "out"
 
 [build.environment]
   NODE_VERSION = "18"
+  NEXT_USE_TRAILING_SLASH = "true"
+  NEXT_OUTPUT_EXPORT = "true"
 
 # Handle Next.js routes
 [[redirects]]
   from = "/*"
   to = "/index.html"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/bg/*"
+  to = "/bg/index.html"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/en/*"
+  to = "/en/index.html"
   status = 200
   force = false
 

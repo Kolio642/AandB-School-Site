@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "include": ["/*"],
+  "exclude": [
+    "/_next/*",
+    "/api/*",
+    "/images/*",
+    "/fonts/*",
+    "/*.ico",
+    "/*.js",
+    "/*.json",
+    "/*.css",
+    "/*.png",
+    "/*.jpg",
+    "/*.svg",
+    "/*.woff",
+    "/*.woff2",
+    "/*.ttf"
+  ]
+} 
