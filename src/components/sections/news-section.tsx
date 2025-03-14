@@ -46,9 +46,11 @@ function NewsCard({ item, locale }: NewsCardProps) {
   );
 }
 
-export function NewsSection({ locale }: NewsSectionProps) {
-  const latestNews = getLatestNews(3);
-  
+interface NewsSectionClientProps extends NewsSectionProps {
+  news: NewsItem[];
+}
+
+function NewsSectionClient({ locale, news }: NewsSectionClientProps) {
   return (
     <section className="py-16 md:py-24">
       <div className="container">
@@ -63,7 +65,7 @@ export function NewsSection({ locale }: NewsSectionProps) {
           </p>
         </div>
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {latestNews.map((item) => (
+          {news.map((item) => (
             <NewsCard key={item.id} item={item} locale={locale} />
           ))}
         </div>
@@ -77,4 +79,10 @@ export function NewsSection({ locale }: NewsSectionProps) {
       </div>
     </section>
   );
+}
+
+export async function NewsSection({ locale }: NewsSectionProps) {
+  const latestNews = await getLatestNews(3);
+  
+  return <NewsSectionClient locale={locale} news={latestNews} />;
 } 

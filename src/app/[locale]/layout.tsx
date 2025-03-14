@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { AuthProvider } from '@/context/auth-context';
 
 /**
  * Generate static paths for all locales
@@ -83,13 +84,13 @@ export default function LocaleLayout({
     
     return (
       <ErrorBoundary fallback={<div className="p-4">Something went wrong. Please try again later.</div>}>
-        <>
+        <AuthProvider>
           <Header locale={locale} />
           <main className="flex-1">
             {children}
           </main>
           <Footer locale={locale} />
-        </>
+        </AuthProvider>
       </ErrorBoundary>
     );
   } catch (error) {

@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # Next.js application
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    depends_on:
+      - supabase
+    networks:
+      - aandb-network
+
+  # Supabase local development
+  supabase:
+    image: supabase/supabase-dev:latest
+    ports:
+      - "54321:54321"  # API and Studio
+      - "54322:54322"  # Inbucket (for email testing)
+    volumes:
+      - ./supabase/migrations:/supabase/migrations
+      - ./supabase/config.toml:/supabase/config.toml
+      - supabase-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - JWT_SECRET=${JWT_SECRET}
+      - ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    networks:
+      - aandb-network
+
+networks:
+  aandb-network:
+    driver: bridge
+
+volumes:
+  supabase-data: 

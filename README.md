@@ -14,6 +14,8 @@ This website is built for A&B School, providing information about the school's e
 - **OpenStreetMap Integration**: Shows the school location using free, open-source mapping
 - **Contact Form**: Easy to use contact form for inquiries
 - **Mobile-First Design**: Fully responsive across all device sizes
+- **Admin Dashboard**: Secure admin area for managing news and achievements
+- **Database Integration**: Supabase backend for storing and retrieving dynamic content
 
 ## Technologies
 
@@ -23,6 +25,9 @@ This website is built for A&B School, providing information about the school's e
 - **[TailwindCSS](https://tailwindcss.com/)**: Utility-first CSS framework
 - **[Leaflet.js](https://leafletjs.com/)**: Open-source JavaScript library for mobile-friendly interactive maps
 - **[Lucide Icons](https://lucide.dev/)**: Beautiful open-source icons
+- **[Supabase](https://supabase.com/)**: Open source Firebase alternative for database and authentication
+- **[React Hook Form](https://react-hook-form.com/)**: Form validation library
+- **[Zod](https://zod.dev/)**: TypeScript-first schema validation
 
 ## Getting Started
 
@@ -30,6 +35,7 @@ This website is built for A&B School, providing information about the school's e
 
 - Node.js 18 or later
 - npm or yarn
+- Supabase account (for database functionality)
 
 ### Installation
 
@@ -46,30 +52,51 @@ This website is built for A&B School, providing information about the school's e
    yarn install
    ```
 
-3. Run the development server:
+3. Set up environment variables:
+   ```bash
+   cp .env.local.example .env.local
+   ```
+   Then edit `.env.local` with your Supabase credentials.
+
+4. Set up the database:
+   - Create a new project in Supabase
+   - Run the SQL setup script from `database/schema.sql` in the Supabase SQL editor
+   - Create an admin user in the Supabase Authentication section
+
+5. Run the development server:
    ```bash
    npm run dev
    # or
    yarn dev
    ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Project Structure
 
 ```
 AandB-School-Site/
 ├── .cloudflare/         # Cloudflare configuration
+├── database/            # Database schema and migrations
 ├── locales/             # Translation files
 ├── public/              # Static assets
 ├── src/
 │   ├── app/             # Next.js App Router
+│   │   ├── admin/       # Admin dashboard and management
+│   │   ├── api/         # API routes
+│   │   └── [locale]/    # Localized routes
 │   ├── components/      # Reusable UI components
+│   │   ├── admin/       # Admin-specific components
+│   │   ├── sections/    # Page sections
+│   │   └── ui/          # UI components
+│   ├── context/         # React context providers
 │   ├── data/            # Static data and content
 │   ├── lib/             # Utility functions
 │   ├── styles/          # Global styles
 │   └── types/           # TypeScript type definitions
+├── .env.local.example   # Example environment variables
 ├── .gitignore
+├── middleware.ts        # Next.js middleware for auth
 ├── next.config.js       # Next.js configuration
 ├── package.json
 ├── postcss.config.js
@@ -112,4 +139,57 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgements
 
 - OpenStreetMap for providing free map data
-- All the open-source libraries and tools that made this project possible 
+- All the open-source libraries and tools that made this project possible
+
+## Database and Admin Functionality
+
+The A&B School website includes a complete admin dashboard for managing content:
+
+### Features
+
+- **Admin Authentication**: Secure login for administrators
+- **News Management**: Create, edit, delete, and publish/unpublish news articles
+- **Achievements Management**: Track and showcase student and school achievements
+- **Bilingual Content**: All content can be managed in both English and Bulgarian
+- **Dynamic Content**: Public-facing pages fetch content from the database
+- **Fallback Support**: Static data is used as a fallback for backward compatibility
+
+### Database Setup
+
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Run the database schema script from `database/schema.sql` in the Supabase SQL editor
+3. Set up your environment variables in `.env.local`:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+4. Create an admin user in Supabase Authentication
+
+### Seeding the Database
+
+To populate your database with sample data:
+
+1. Install dependencies:
+   ```bash
+   npm install @supabase/supabase-js
+   ```
+
+2. Set environment variables for the seed script:
+   ```bash
+   # Windows
+   set SUPABASE_URL=your_supabase_url
+   set SUPABASE_ANON_KEY=your_supabase_anon_key
+   
+   # Linux/Mac
+   export SUPABASE_URL=your_supabase_url
+   export SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+3. Run the seed script:
+   ```bash
+   node database/seed.js
+   ```
+
+### Accessing the Admin Dashboard
+
+The admin dashboard is available at `/admin`. You'll need to sign in with your Supabase admin credentials 

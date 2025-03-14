@@ -29,9 +29,9 @@ export function generateMetadata({ params }: NewsPageProps): Metadata {
   };
 }
 
-export default function NewsPage({ params }: NewsPageProps) {
+export default async function NewsPage({ params }: NewsPageProps) {
   const { locale } = params;
-  const allNews = getAllNews();
+  const allNews = await getAllNews();
   
   return (
     <main className="py-10">

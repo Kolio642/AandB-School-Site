@@ -16,8 +16,8 @@ interface NewsDetailPageProps {
 }
 
 // This function is required when using static export with dynamic routes
-export function generateStaticParams() {
-  const news = getAllNews();
+export async function generateStaticParams() {
+  const news = await getAllNews();
   
   // Generate all combinations of locale and news id
   const params = [];
@@ -34,9 +34,9 @@ export function generateStaticParams() {
   return params;
 }
 
-export function generateMetadata({ params }: NewsDetailPageProps): Metadata {
+export async function generateMetadata({ params }: NewsDetailPageProps): Promise<Metadata> {
   const { locale, id } = params;
-  const newsItem = getNewsById(id);
+  const newsItem = await getNewsById(id);
   
   if (!newsItem) {
     return {
@@ -52,9 +52,9 @@ export function generateMetadata({ params }: NewsDetailPageProps): Metadata {
   };
 }
 
-export default function NewsDetailPage({ params }: NewsDetailPageProps) {
+export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
   const { locale, id } = params;
-  const newsItem = getNewsById(id);
+  const newsItem = await getNewsById(id);
   
   if (!newsItem) {
     notFound();

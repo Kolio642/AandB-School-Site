@@ -1,5 +1,8 @@
 import { Locale, locales } from '@/lib/i18n';
 import { Metadata } from 'next';
+import Image from 'next/image';
+import { formatDate } from '@/lib/utils';
+import { getAllAchievements } from '@/data/achievements';
 
 interface AchievementsPageProps {
   params: {
@@ -24,86 +27,27 @@ export function generateMetadata({ params }: AchievementsPageProps): Metadata {
   };
 }
 
-export default function AchievementsPage({ params }: AchievementsPageProps) {
+export default async function AchievementsPage({ params }: AchievementsPageProps) {
   const { locale } = params;
+  const achievements = await getAllAchievements();
   
-  // Sample achievements data
-  const achievements = locale === 'en' ? [
-    {
-      year: '2023',
-      competitions: [
-        {
-          name: 'National Olympiad in Informatics',
-          results: '2 gold medals, 1 silver medal, 3 bronze medals'
-        },
-        {
-          name: 'International Olympiad in Informatics',
-          results: '1 silver medal'
-        },
-        {
-          name: 'National Tournament in Mathematics',
-          results: '3 gold medals, 2 silver medals, 5 bronze medals'
-        }
-      ]
-    },
-    {
-      year: '2022',
-      competitions: [
-        {
-          name: 'National Olympiad in Informatics',
-          results: '1 gold medal, 2 silver medals, 4 bronze medals'
-        },
-        {
-          name: 'Balkan Olympiad in Informatics',
-          results: '1 bronze medal'
-        },
-        {
-          name: 'National Tournament in Mathematics',
-          results: '2 gold medals, 4 silver medals, 3 bronze medals'
-        }
-      ]
+  // Group achievements by year
+  const achievementsByYear = achievements.reduce((groups, achievement) => {
+    const year = new Date(achievement.date).getFullYear().toString();
+    if (!groups[year]) {
+      groups[year] = [];
     }
-  ] : [
-    {
-      year: '2023',
-      competitions: [
-        {
-          name: 'Национална олимпиада по информатика',
-          results: '2 златни медала, 1 сребърен медал, 3 бронзови медала'
-        },
-        {
-          name: 'Международна олимпиада по информатика',
-          results: '1 сребърен медал'
-        },
-        {
-          name: 'Национален турнир по математика',
-          results: '3 златни медала, 2 сребърни медала, 5 бронзови медала'
-        }
-      ]
-    },
-    {
-      year: '2022',
-      competitions: [
-        {
-          name: 'Национална олимпиада по информатика',
-          results: '1 златен медал, 2 сребърни медала, 4 бронзови медала'
-        },
-        {
-          name: 'Балканска олимпиада по информатика',
-          results: '1 бронзов медал'
-        },
-        {
-          name: 'Национален турнир по математика',
-          results: '2 златни медала, 4 сребърни медала, 3 бронзови медала'
-        }
-      ]
-    }
-  ];
+    groups[year].push(achievement);
+    return groups;
+  }, {} as Record<string, typeof achievements>);
+  
+  // Sort years in descending order
+  const sortedYears = Object.keys(achievementsByYear).sort((a, b) => parseInt(b) - parseInt(a));
   
   return (
     <main className="py-10">
       <div className="container">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <h1 className="text-4xl font-bold mb-6">
             {locale === 'en' ? 'Student Achievements' : 'Ученически постижения'}
           </h1>
@@ -114,20 +58,75 @@ export default function AchievementsPage({ params }: AchievementsPageProps) {
               : 'Нашите ученици редовно участват и печелят награди на национални и международни състезания по математика и информатика.'}
           </p>
           
-          <div className="space-y-10">
-            {achievements.map((achievement) => (
-              <div key={achievement.year} className="border rounded-lg p-6 bg-card">
-                <h2 className="text-2xl font-bold mb-4">{achievement.year}</h2>
-                <div className="space-y-4">
-                  {achievement.competitions.map((competition, index) => (
-                    <div key={index} className="border-b pb-4 last:border-b-0 last:pb-0">
-                      <h3 className="font-semibold text-xl">{competition.name}</h3>
-                      <p className="text-muted-foreground">{competition.results}</p>
-                    </div>
-                  ))}
+          <div className="space-y-12">
+            {sortedYears.map((year) => (
+              <div key={year} className="border rounded-lg p-6 bg-card">
+                <h2 className="text-2xl font-bold mb-6">{year}</h2>
+                <div className="space-y-8">
+                  {achievementsByYear[year].map((achievement) => {
+                    const translation = achievement.translations[locale];
+                    const formattedDate = formatDate(
+                      new Date(achievement.date), 
+                      locale === 'en' ? 'en-US' : 'bg-BG'
+                    );
+                    
+                    return (
+                      <div key={achievement.id} className="flex flex-col md:flex-row gap-6 pb-8 border-b last:border-b-0 last:pb-0">
+                        {achievement.image && (
+                          <div className="relative w-full md:w-64 h-48 overflow-hidden rounded-md">
+                            <Image
+                              src={achievement.image}
+                              alt={translation.title}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <h3 className="text-xl font-semibold mb-2">{translation.title}</h3>
+                          
+                          <div className="flex flex-wrap gap-x-4 gap-y-2 mb-3 text-sm">
+                            <div className="text-muted-foreground">
+                              <span className="font-medium">{formattedDate}</span>
+                            </div>
+                            
+                            {achievement.student_name && (
+                              <div className="text-muted-foreground">
+                                <span className="font-medium">{achievement.student_name}</span>
+                              </div>
+                            )}
+                            
+                            <div className="text-muted-foreground">
+                              <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800">
+                                {achievement.category}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div 
+                            className="prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: translation.description }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
+            
+            {sortedYears.length === 0 && (
+              <div className="text-center p-8 border rounded-lg">
+                <h3 className="text-xl font-semibold">
+                  {locale === 'en' ? 'No achievements found' : 'Не са намерени постижения'}
+                </h3>
+                <p className="text-muted-foreground mt-2">
+                  {locale === 'en' 
+                    ? 'Check back later for updates on our student achievements' 
+                    : 'Проверете по-късно за обновления относно постиженията на нашите ученици'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -29,7 +29,7 @@ export function generateMetadata({ params }: HomePageProps): Metadata {
   };
 }
 
-export default function HomePage({ params: { locale } }: HomePageProps) {
+export default async function HomePage({ params: { locale } }: HomePageProps) {
   return (
     <main>
       <HeroSection locale={locale} />

@@ -2,7 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -10,9 +9,10 @@ const nextConfig = {
       },
     ],
   },
-  output: 'export',
-  distDir: 'out',
-  trailingSlash: true,
+  // Commenting out static export settings for now
+  // output: 'export',
+  // distDir: 'out',
+  // trailingSlash: true,
 };
 
 module.exports = nextConfig;

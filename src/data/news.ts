@@ -1,4 +1,5 @@
 import { Locale } from "@/lib/i18n";
+import { supabase } from "@/lib/supabase";
 
 export interface NewsItem {
   id: string;
@@ -11,6 +12,19 @@ export interface NewsItem {
       content: string;
     }
   }
+}
+
+// Supabase news item interface
+export interface SupabaseNewsItem {
+  id: string;
+  title: string;
+  content: string;
+  slug: string;
+  image_url?: string;
+  published_at: string;
+  created_at: string;
+  updated_at: string;
+  published: boolean;
 }
 
 /**
@@ -119,23 +133,124 @@ export const newsItems: NewsItem[] = [
 
 /**
  * Get all news items, sorted by date (newest first)
+ * Combines static news items with data from Supabase
  */
-export function getAllNews(): NewsItem[] {
-  return [...newsItems].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+export async function getAllNews(): Promise<NewsItem[]> {
+  try {
+    // First try to get news from Supabase
+    const { data: supabaseNews, error } = await supabase
+      .from('news')
+      .select('*')
+      .eq('published', true)
+      .order('date', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching news from Supabase:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      
+      // Fall back to static data if there's an error
+      return [...newsItems].sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+    }
+    
+    if (supabaseNews && supabaseNews.length > 0) {
+      // Convert Supabase data to NewsItem format
+      const convertedNews: NewsItem[] = supabaseNews.map(item => ({
+        id: item.id,
+        date: item.date,
+        image: item.image || undefined,
+        translations: {
+          en: {
+            title: item.title_en,
+            summary: item.summary_en,
+            content: item.content_en
+          },
+          bg: {
+            title: item.title_bg,
+            summary: item.summary_bg,
+            content: item.content_bg
+          }
+        }
+      }));
+      
+      // Combine with static items
+      return [...convertedNews, ...newsItems].sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+    }
+    
+    // If no Supabase data, return static data
+    return [...newsItems].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  } catch (error) {
+    // Log any unhandled errors
+    console.error('Unhandled error in getAllNews:', error);
+    
+    // Fall back to static data for resilience
+    return [...newsItems].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }
 }
 
 /**
  * Get a specific news item by ID
  */
-export function getNewsById(id: string): NewsItem | undefined {
-  return newsItems.find(item => item.id === id);
+export async function getNewsById(id: string): Promise<NewsItem | undefined> {
+  try {
+    // First check if it's a static news item
+    const staticItem = newsItems.find(item => item.id === id);
+    if (staticItem) {
+      return staticItem;
+    }
+    
+    // If not found in static items, check Supabase
+    const { data: supabaseItem, error } = await supabase
+      .from('news')
+      .select('*')
+      .eq('slug', id)
+      .eq('published', true)
+      .single();
+    
+    if (error || !supabaseItem) {
+      console.error('Error fetching news item from Supabase:', error);
+      return undefined;
+    }
+    
+    // Convert to expected format
+    return {
+      id: supabaseItem.slug,
+      date: new Date(supabaseItem.published_at).toISOString().split('T')[0],
+      image: supabaseItem.image_url,
+      translations: {
+        en: {
+          title: supabaseItem.title,
+          summary: supabaseItem.content.substring(0, 150) + '...',
+          content: supabaseItem.content
+        },
+        bg: {
+          title: supabaseItem.title, // If you don't have separate languages yet
+          summary: supabaseItem.content.substring(0, 150) + '...',
+          content: supabaseItem.content
+        }
+      }
+    };
+  } catch (error) {
+    console.error('Unexpected error fetching news item:', error);
+    return undefined;
+  }
 }
 
 /**
  * Get the latest news items (limit specifies how many)
  */
-export function getLatestNews(limit: number = 3): NewsItem[] {
-  return getAllNews().slice(0, limit);
+export async function getLatestNews(limit: number = 3): Promise<NewsItem[]> {
+  const allNews = await getAllNews();
+  return allNews.slice(0, limit);
 } 
