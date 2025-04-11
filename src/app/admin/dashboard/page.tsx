@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Pencil, Plus, Trash2, Eye, ArrowUpRight } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createBrowserClient } from '@supabase/ssr';
 
 interface NewsItem {
   id: string;
@@ -38,8 +38,11 @@ export default function AdminDashboardPage() {
     // Force refresh auth state on dashboard load
     const refreshAuth = async () => {
       try {
-        const supabase = createClientComponentClient();
-        await supabase.auth.getUser();
+        const supabaseClient = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        await supabaseClient.auth.getUser();
       } catch (error) {
         console.error('Error refreshing auth state:', error);
       }
@@ -118,10 +121,10 @@ export default function AdminDashboardPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <div className="flex gap-2">
-          <Button onClick={() => navigateTo('/admin/news/new')} size="sm">
+          <Button onClick={() => navigateTo('/admin/news/new')} className="h-9 px-3">
             <Plus className="mr-1 h-4 w-4" /> New News
           </Button>
-          <Button onClick={() => navigateTo('/admin/achievements/new')} size="sm">
+          <Button onClick={() => navigateTo('/admin/achievements/new')} className="h-9 px-3">
             <Plus className="mr-1 h-4 w-4" /> New Achievement
           </Button>
         </div>
@@ -137,7 +140,10 @@ export default function AdminDashboardPage() {
             <p>Use the dashboard to manage content for the A&B School website.</p>
           </CardContent>
           <CardFooter>
-            <Button variant="outline" className="w-full" onClick={() => navigateTo('/')}>
+            <Button 
+              onClick={() => navigateTo('/')} 
+              className="w-full bg-transparent border border-input text-primary hover:bg-accent"
+            >
               <Eye className="mr-1 h-4 w-4" /> View Website
             </Button>
           </CardFooter>
@@ -147,7 +153,10 @@ export default function AdminDashboardPage() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between">
               News Management
-              <Button variant="ghost" size="sm" onClick={() => navigateTo('/admin/news')}>
+              <Button 
+                onClick={() => navigateTo('/admin/news')} 
+                className="h-8 w-8 p-0 rounded-full"
+              >
                 <ArrowUpRight className="h-4 w-4" />
               </Button>
             </CardTitle>
@@ -183,7 +192,10 @@ export default function AdminDashboardPage() {
             )}
           </CardContent>
           <CardFooter>
-            <Button onClick={() => navigateTo('/admin/news/new')} variant="outline" className="w-full">
+            <Button 
+              onClick={() => navigateTo('/admin/news/new')} 
+              className="w-full bg-transparent border border-input text-primary hover:bg-accent"
+            >
               <Plus className="mr-1 h-4 w-4" /> Add News
             </Button>
           </CardFooter>
@@ -193,7 +205,10 @@ export default function AdminDashboardPage() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between">
               Achievements 
-              <Button variant="ghost" size="sm" onClick={() => navigateTo('/admin/achievements')}>
+              <Button 
+                onClick={() => navigateTo('/admin/achievements')} 
+                className="h-8 w-8 p-0 rounded-full"
+              >
                 <ArrowUpRight className="h-4 w-4" />
               </Button>
             </CardTitle>
@@ -229,7 +244,10 @@ export default function AdminDashboardPage() {
             )}
           </CardContent>
           <CardFooter>
-            <Button onClick={() => navigateTo('/admin/achievements/new')} variant="outline" className="w-full">
+            <Button 
+              onClick={() => navigateTo('/admin/achievements/new')} 
+              className="w-full bg-transparent border border-input text-primary hover:bg-accent"
+            >
               <Plus className="mr-1 h-4 w-4" /> Add Achievement
             </Button>
           </CardFooter>
@@ -243,13 +261,22 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-2">
-              <Button onClick={() => navigateTo('/admin/news')} variant="outline" className="justify-start">
+              <Button 
+                onClick={() => navigateTo('/admin/news')} 
+                className="justify-start bg-transparent border border-input text-primary hover:bg-accent"
+              >
                 <ArrowUpRight className="mr-2 h-4 w-4" /> News Management
               </Button>
-              <Button onClick={() => navigateTo('/admin/achievements')} variant="outline" className="justify-start">
+              <Button 
+                onClick={() => navigateTo('/admin/achievements')} 
+                className="justify-start bg-transparent border border-input text-primary hover:bg-accent"
+              >
                 <ArrowUpRight className="mr-2 h-4 w-4" /> Achievements Management
               </Button>
-              <Button onClick={() => navigateTo('/')} variant="outline" className="justify-start">
+              <Button 
+                onClick={() => navigateTo('/')} 
+                className="justify-start bg-transparent border border-input text-primary hover:bg-accent"
+              >
                 <ArrowUpRight className="mr-2 h-4 w-4" /> View Public Website
               </Button>
             </div>
