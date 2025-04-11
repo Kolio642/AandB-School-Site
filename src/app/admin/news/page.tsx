@@ -22,6 +22,11 @@ export default function AdminNewsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper function for hard navigation
+  const navigateTo = (path: string) => {
+    window.location.href = path;
+  };
+
   useEffect(() => {
     const fetchNews = async () => {
       try {
@@ -114,14 +119,14 @@ export default function AdminNewsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">News Management</h1>
-        <Button onClick={() => router.push('/admin/news/new')}>Add News</Button>
+        <Button onClick={() => navigateTo('/admin/news/new')}>Add News</Button>
       </div>
 
       {newsItems.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center">
           <h3 className="text-lg font-semibold">No news items found</h3>
           <p className="text-muted-foreground mt-2">Get started by creating your first news item.</p>
-          <Button className="mt-4" onClick={() => router.push('/admin/news/new')}>
+          <Button className="mt-4" onClick={() => navigateTo('/admin/news/new')}>
             Create News Item
           </Button>
         </div>
@@ -172,7 +177,7 @@ export default function AdminNewsPage() {
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          onClick={() => router.push(`/admin/news/edit/${item.id}`)}
+                          onClick={() => navigateTo(`/admin/news/edit/${item.id}`)}
                         >
                           Edit
                         </Button>

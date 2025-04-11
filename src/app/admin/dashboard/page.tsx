@@ -1,168 +1,276 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/context/auth-context';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Pencil, Plus, Trash2, Eye, ArrowUpRight } from 'lucide-react';
+import { formatDate } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
-interface DashboardStats {
-  newsCount: number;
-  achievementsCount: number;
+interface NewsItem {
+  id: string;
+  title_en: string;
+  date: string;
+  published: boolean;
+}
+
+interface Achievement {
+  id: string;
+  title_en: string;
+  date: string;
+  published: boolean;
 }
 
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>({
-    newsCount: 0,
-    achievementsCount: 0,
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const { user, isLoading } = useAuth();
+  const [mounted, setMounted] = useState(false);
+  const [recentNews, setRecentNews] = useState<NewsItem[]>([]);
+  const [recentAchievements, setRecentAchievements] = useState<Achievement[]>([]);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
 
+  // Set component as mounted
   useEffect(() => {
-    const fetchStats = async () => {
+    setMounted(true);
+    console.log('Dashboard mounted, checking auth state');
+    
+    // Force refresh auth state on dashboard load
+    const refreshAuth = async () => {
       try {
-        setIsLoading(true);
-        setError(null);
-
-        // Get user info
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
-
-        // Get news count
-        const { count: newsCount, error: newsError } = await supabase
-          .from('news')
-          .select('*', { count: 'exact', head: true });
-
-        if (newsError) throw newsError;
-
-        // Get achievements count
-        const { count: achievementsCount, error: achievementsError } = await supabase
-          .from('achievements')
-          .select('*', { count: 'exact', head: true });
-
-        if (achievementsError) throw achievementsError;
-
-        setStats({
-          newsCount: newsCount || 0,
-          achievementsCount: achievementsCount || 0,
-        });
-      } catch (error: any) {
-        console.error('Error fetching dashboard stats:', error);
-        setError(error.message || 'Failed to load dashboard statistics');
-      } finally {
-        setIsLoading(false);
+        const supabase = createClientComponentClient();
+        await supabase.auth.getUser();
+      } catch (error) {
+        console.error('Error refreshing auth state:', error);
       }
     };
-
-    fetchStats();
+    
+    refreshAuth();
   }, []);
 
-  if (isLoading) {
+  // Handle unauthenticated users
+  useEffect(() => {
+    if (mounted && !isLoading && !user) {
+      console.log('No user in dashboard, redirecting to login');
+      window.location.replace('/admin');
+    }
+  }, [mounted, isLoading, user]);
+  
+  // Load dashboard data when user is authenticated
+  useEffect(() => {
+    async function fetchRecentItems() {
+      try {
+        // Fetch recent news items
+        const { data: newsData, error: newsError } = await supabase
+          .from('news')
+          .select('id, title_en, date, published')
+          .order('date', { ascending: false })
+          .limit(3);
+
+        if (newsError) throw newsError;
+        setRecentNews(newsData || []);
+
+        // Fetch recent achievements
+        const { data: achievementsData, error: achievementsError } = await supabase
+          .from('achievements')
+          .select('id, title_en, date, published')
+          .order('date', { ascending: false })
+          .limit(3);
+
+        if (achievementsError) throw achievementsError;
+        setRecentAchievements(achievementsData || []);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setDashboardLoading(false);
+      }
+    }
+
+    if (mounted && user) {
+      fetchRecentItems();
+    }
+  }, [mounted, user]);
+
+  // Handle navigation with hard redirects instead of client routing
+  const navigateTo = (path: string) => {
+    window.location.href = path;
+  };
+
+  if (!mounted || isLoading || dashboardLoading) {
     return (
-      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 text-2xl font-bold">Loading Dashboard...</div>
-          <div className="text-muted-foreground">Please wait while we fetch your data.</div>
+      <div className="container py-10">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="mb-4 text-2xl font-bold">Loading...</div>
+            <div className="text-muted-foreground">Please wait while we load your dashboard.</div>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 text-2xl font-bold text-destructive">Error Loading Dashboard</div>
-          <div className="text-muted-foreground mb-6">{error}</div>
-          <Button onClick={() => window.location.reload()}>Try Again</Button>
-        </div>
-      </div>
-    );
+  if (!user) {
+    return null; // Will redirect in useEffect
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Welcome back, {user?.email || 'Administrator'}
-        </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>News Articles</CardTitle>
-            <CardDescription>Manage school news and updates</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.newsCount}</div>
-            <p className="text-xs text-muted-foreground">Total news articles</p>
-          </CardContent>
-          <CardFooter>
-            <Button asChild className="w-full">
-              <Link href="/admin/news">Manage News</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Achievements</CardTitle>
-            <CardDescription>Manage student and school achievements</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.achievementsCount}</div>
-            <p className="text-xs text-muted-foreground">Total achievements</p>
-          </CardContent>
-          <CardFooter>
-            <Button asChild className="w-full">
-              <Link href="/admin/achievements">Manage Achievements</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Website Preview</CardTitle>
-            <CardDescription>View your public website</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm">
-              See how your content appears to visitors on the public-facing website.
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/" target="_blank">View Website</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-
-      <div className="mt-8">
-        <h2 className="text-2xl font-bold mb-4">Quick Actions</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Button asChild variant="outline" size="lg" className="h-24">
-            <Link href="/admin/news/new">
-              <div className="flex flex-col items-center justify-center">
-                <span className="text-lg font-medium">Add News</span>
-                <span className="text-xs text-muted-foreground">Create a new news article</span>
-              </div>
-            </Link>
+    <div className="container py-10">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <div className="flex gap-2">
+          <Button onClick={() => navigateTo('/admin/news/new')} size="sm">
+            <Plus className="mr-1 h-4 w-4" /> New News
           </Button>
-          
-          <Button asChild variant="outline" size="lg" className="h-24">
-            <Link href="/admin/achievements/new">
-              <div className="flex flex-col items-center justify-center">
-                <span className="text-lg font-medium">Add Achievement</span>
-                <span className="text-xs text-muted-foreground">Record a new achievement</span>
-              </div>
-            </Link>
+          <Button onClick={() => navigateTo('/admin/achievements/new')} size="sm">
+            <Plus className="mr-1 h-4 w-4" /> New Achievement
           </Button>
         </div>
+      </div>
+      
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle>Welcome</CardTitle>
+            <CardDescription>You are logged in as {user.email}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>Use the dashboard to manage content for the A&B School website.</p>
+          </CardContent>
+          <CardFooter>
+            <Button variant="outline" className="w-full" onClick={() => navigateTo('/')}>
+              <Eye className="mr-1 h-4 w-4" /> View Website
+            </Button>
+          </CardFooter>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center justify-between">
+              News Management
+              <Button variant="ghost" size="sm" onClick={() => navigateTo('/admin/news')}>
+                <ArrowUpRight className="h-4 w-4" />
+              </Button>
+            </CardTitle>
+            <CardDescription>Manage news articles</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[120px] overflow-y-auto">
+            {recentNews.length > 0 ? (
+              <ul className="space-y-2">
+                {recentNews.map(item => (
+                  <li key={item.id} className="text-sm border-b pb-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium truncate max-w-[180px]">{item.title_en}</span>
+                      <div className="flex gap-1">
+                        <button 
+                          onClick={() => navigateTo(`/admin/news/edit/${item.id}`)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{formatDate(item.date)}</span>
+                      <span className={item.published ? 'text-green-600' : 'text-amber-600'}>
+                        {item.published ? 'Published' : 'Draft'}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground text-sm">No news items yet.</p>
+            )}
+          </CardContent>
+          <CardFooter>
+            <Button onClick={() => navigateTo('/admin/news/new')} variant="outline" className="w-full">
+              <Plus className="mr-1 h-4 w-4" /> Add News
+            </Button>
+          </CardFooter>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center justify-between">
+              Achievements 
+              <Button variant="ghost" size="sm" onClick={() => navigateTo('/admin/achievements')}>
+                <ArrowUpRight className="h-4 w-4" />
+              </Button>
+            </CardTitle>
+            <CardDescription>Manage student achievements</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[120px] overflow-y-auto">
+            {recentAchievements.length > 0 ? (
+              <ul className="space-y-2">
+                {recentAchievements.map(item => (
+                  <li key={item.id} className="text-sm border-b pb-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium truncate max-w-[180px]">{item.title_en}</span>
+                      <div className="flex gap-1">
+                        <button 
+                          onClick={() => navigateTo(`/admin/achievements/edit/${item.id}`)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{formatDate(item.date)}</span>
+                      <span className={item.published ? 'text-green-600' : 'text-amber-600'}>
+                        {item.published ? 'Published' : 'Draft'}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground text-sm">No achievements yet.</p>
+            )}
+          </CardContent>
+          <CardFooter>
+            <Button onClick={() => navigateTo('/admin/achievements/new')} variant="outline" className="w-full">
+              <Plus className="mr-1 h-4 w-4" /> Add Achievement
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+      
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Links</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2">
+              <Button onClick={() => navigateTo('/admin/news')} variant="outline" className="justify-start">
+                <ArrowUpRight className="mr-2 h-4 w-4" /> News Management
+              </Button>
+              <Button onClick={() => navigateTo('/admin/achievements')} variant="outline" className="justify-start">
+                <ArrowUpRight className="mr-2 h-4 w-4" /> Achievements Management
+              </Button>
+              <Button onClick={() => navigateTo('/')} variant="outline" className="justify-start">
+                <ArrowUpRight className="mr-2 h-4 w-4" /> View Public Website
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Admin Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2">
+              <Button onClick={() => navigateTo('/admin/news/new')} className="justify-start">
+                <Plus className="mr-2 h-4 w-4" /> Create News Article
+              </Button>
+              <Button onClick={() => navigateTo('/admin/achievements/new')} className="justify-start">
+                <Plus className="mr-2 h-4 w-4" /> Create Achievement
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

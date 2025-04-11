@@ -24,6 +24,11 @@ export default function AdminAchievementsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper function for hard navigation
+  const navigateTo = (path: string) => {
+    window.location.href = path;
+  };
+
   useEffect(() => {
     const fetchAchievements = async () => {
       try {
@@ -116,14 +121,14 @@ export default function AdminAchievementsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Achievements Management</h1>
-        <Button onClick={() => router.push('/admin/achievements/new')}>Add Achievement</Button>
+        <Button onClick={() => navigateTo('/admin/achievements/new')}>Add Achievement</Button>
       </div>
 
       {achievements.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center">
           <h3 className="text-lg font-semibold">No achievements found</h3>
           <p className="text-muted-foreground mt-2">Get started by creating your first achievement.</p>
-          <Button className="mt-4" onClick={() => router.push('/admin/achievements/new')}>
+          <Button className="mt-4" onClick={() => navigateTo('/admin/achievements/new')}>
             Create Achievement
           </Button>
         </div>
@@ -182,7 +187,7 @@ export default function AdminAchievementsPage() {
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          onClick={() => router.push(`/admin/achievements/edit/${item.id}`)}
+                          onClick={() => navigateTo(`/admin/achievements/edit/${item.id}`)}
                         >
                           Edit
                         </Button>

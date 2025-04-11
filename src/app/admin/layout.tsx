@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
+import type { Metadata } from 'next';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -12,41 +14,8 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session && pathname !== '/admin') {
-          router.push('/admin');
-          return;
-        }
-
-        setIsAuthenticated(!!session);
-      } catch (error) {
-        console.error('Session check error:', error);
-        router.push('/admin');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
-      if (!session && pathname !== '/admin') {
-        router.push('/admin');
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [pathname, router]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
 
   const handleSignOut = async () => {
     try {
@@ -57,53 +26,58 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     }
   };
 
-  // Show login page without layout
   if (pathname === '/admin') {
     return children;
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 text-2xl font-bold">Loading...</div>
-          <div className="text-muted-foreground">Please wait while we verify your session.</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null; // Auth check will redirect
-  }
+  const NavLink = ({ href, children, isActive = false }: { href: string; children: React.ReactNode; isActive?: boolean }) => (
+    <a
+      href={href}
+      className={`${isActive ? 'font-semibold' : ''} hover:text-primary transition-colors`}
+    >
+      {children}
+    </a>
+  );
 
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b bg-background">
         <div className="container flex h-16 items-center justify-between py-4">
           <div className="flex items-center gap-6">
-            <Link href="/admin/dashboard" className="text-xl font-bold">
+            <a href="/admin/dashboard" className="text-xl font-bold">
               A&B School Admin
-            </Link>
+            </a>
             <nav className="hidden md:flex items-center gap-6">
-              <Link 
-                href="/admin/dashboard" 
-                className={pathname === '/admin/dashboard' ? 'font-semibold' : ''}
+              <NavLink
+                href="/admin/dashboard"
+                isActive={pathname === '/admin/dashboard'}
               >
                 Dashboard
-              </Link>
-              <Link 
-                href="/admin/news" 
-                className={pathname.startsWith('/admin/news') ? 'font-semibold' : ''}
+              </NavLink>
+              <NavLink
+                href="/admin/news"
+                isActive={pathname.startsWith('/admin/news')}
               >
                 News
-              </Link>
-              <Link 
-                href="/admin/achievements" 
-                className={pathname.startsWith('/admin/achievements') ? 'font-semibold' : ''}
+              </NavLink>
+              <NavLink
+                href="/admin/achievements"
+                isActive={pathname.startsWith('/admin/achievements')}
               >
                 Achievements
-              </Link>
+              </NavLink>
+              <NavLink
+                href="/admin/teachers"
+                isActive={pathname.startsWith('/admin/teachers')}
+              >
+                Teachers
+              </NavLink>
+              <NavLink
+                href="/admin/courses"
+                isActive={pathname.startsWith('/admin/courses')}
+              >
+                Courses
+              </NavLink>
             </nav>
           </div>
           <button 
