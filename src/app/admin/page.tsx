@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createBrowserClient } from '@supabase/ssr';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
@@ -22,7 +22,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function AdminLoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, refreshSession } = useAuth();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,7 +33,10 @@ export default function AdminLoginPage() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const supabase = createClientComponentClient();
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
         const { data } = await supabase.auth.getSession();
         
         if (data.session) {
@@ -53,30 +56,33 @@ export default function AdminLoginPage() {
   useEffect(() => {
     if (redirecting) {
       const redirectTimer = setTimeout(() => {
-        // Force a full page reload to dashboard
-        window.location.replace('/admin/dashboard');
-        
-        // Set up retry logic if we're still on the login page after 2 seconds
-        const retryTimer = setTimeout(() => {
-          if (window.location.pathname === '/admin' && retryCount < 3) {
-            console.log(`Retry ${retryCount + 1}: Still on login page, retrying redirect...`);
-            setRetryCount(prev => prev + 1);
-            // Try a different approach on subsequent attempts
-            if (retryCount === 1) {
-              window.location.href = '/admin/dashboard';
-            } else {
-              // Last resort - full page reload with direct URL
-              window.location.assign('/admin/dashboard');
+        // Try to refresh session before redirect
+        refreshSession().then(() => {
+          // Force a full page reload to dashboard
+          window.location.replace('/admin/dashboard');
+          
+          // Set up retry logic if we're still on the login page after 2 seconds
+          const retryTimer = setTimeout(() => {
+            if (window.location.pathname === '/admin' && retryCount < 3) {
+              console.log(`Retry ${retryCount + 1}: Still on login page, retrying redirect...`);
+              setRetryCount(prev => prev + 1);
+              // Try a different approach on subsequent attempts
+              if (retryCount === 1) {
+                window.location.href = '/admin/dashboard';
+              } else {
+                // Last resort - full page reload with direct URL
+                window.location.assign('/admin/dashboard');
+              }
             }
-          }
-        }, 2000);
-        
-        return () => clearTimeout(retryTimer);
+          }, 2000);
+          
+          return () => clearTimeout(retryTimer);
+        });
       }, 800);
       
       return () => clearTimeout(redirectTimer);
     }
-  }, [redirecting, retryCount]);
+  }, [redirecting, retryCount, refreshSession]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -98,9 +104,16 @@ export default function AdminLoginPage() {
       
       if (result) {
         console.log('Login successful, preparing redirect...');
-        // Cache buster parameter to avoid redirecting to a cached page
+        // Clear any potential old auth cookies first
+        document.cookie = 'supabase-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        
+        // Set a cache buster parameter
         const cacheBuster = new Date().getTime();
         document.cookie = `auth_redirect=${cacheBuster}; path=/`;
+        
+        // Ensure session is properly set before redirecting
+        await refreshSession();
+        
         setRedirecting(true);
       } else {
         setError('Authentication failed. Please check your credentials.');
@@ -124,7 +137,11 @@ export default function AdminLoginPage() {
             <p className="text-amber-600">Redirect is taking longer than expected.</p>
             <Button 
               className="mt-2" 
-              onClick={() => window.location.replace('/admin/dashboard')}
+              onClick={() => {
+                refreshSession().then(() => {
+                  window.location.replace('/admin/dashboard');
+                });
+              }}
             >
               Click here to go to dashboard
             </Button>

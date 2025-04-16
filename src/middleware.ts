@@ -28,7 +28,13 @@ export async function middleware(request: NextRequest) {
     );
 
     // Extract session data
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('Session error in middleware:', error);
+      // Continue with no session
+    }
+    
     console.log('Session check result:', !!session);
     
     // Get the current URL for potential redirects
@@ -52,12 +58,20 @@ export async function middleware(request: NextRequest) {
       // If no session, redirect to login
       if (!session) {
         console.log('No active session, redirecting to login');
+        
+        // Clear any existing auth cookies to prevent cookie confusion
+        res.cookies.delete('sb-access-token');
+        res.cookies.delete('sb-refresh-token');
+        res.cookies.delete('supabase-auth-token');
+        res.cookies.delete('auth_active');
+        
         return NextResponse.redirect(new URL('/admin', request.url));
       }
       
       // For authorized users, set proper cache headers
       res.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
       res.headers.set('Pragma', 'no-cache');
+      res.headers.set('Expires', '0');
       
       // Set a custom cookie to verify auth state on client
       res.cookies.set('auth_active', 'true', {

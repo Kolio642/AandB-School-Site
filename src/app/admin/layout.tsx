@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
+import { LogOut } from 'lucide-react';
 import type { Metadata } from 'next';
 
 interface AdminLayoutProps {
@@ -15,17 +16,32 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const { signOut, user } = useAuth();
+
+  // Redirect to login if not authenticated (except on login page)
+  useEffect(() => {
+    if (pathname !== '/admin' && !user) {
+      console.log('No authenticated user detected in layout, redirecting to login');
+      window.location.replace('/admin');
+    }
+  }, [pathname, user]);
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
-      router.push('/admin');
+      setIsLoading(true);
+      console.log('Signing out from admin layout...');
+      await signOut(); // Uses the signOut method from auth context
+      // No need to redirect here as the signOut method already handles it
     } catch (error) {
       console.error('Sign out error:', error);
+      // Fallback redirect in case of error
+      window.location.href = '/admin';
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Only render children on login page
   if (pathname === '/admin') {
     return children;
   }
@@ -80,12 +96,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </NavLink>
             </nav>
           </div>
-          <button 
+          <Button 
             onClick={handleSignOut}
-            className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90"
+            disabled={isLoading}
+            className="gap-2"
           >
-            Sign Out
-          </button>
+            {isLoading ? 'Signing out...' : 'Sign Out'}
+            <LogOut className="h-4 w-4" />
+          </Button>
         </div>
       </header>
       <main className="flex-1 container py-6">

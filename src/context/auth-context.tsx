@@ -10,6 +10,7 @@ type AuthContextType = {
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ user: User; session: Session } | void>;
   signOut: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +25,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+
+  // Function to refresh the session
+  const refreshSession = async () => {
+    try {
+      console.log('Manually refreshing session...');
+      const { data, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Error refreshing session:', error);
+        return;
+      }
+      
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+        console.log('Session refreshed successfully');
+      } else {
+        // No valid session found
+        setSession(null);
+        setUser(null);
+        console.log('No valid session found during refresh');
+      }
+    } catch (e) {
+      console.error('Unexpected error refreshing session:', e);
+    }
+  };
 
   useEffect(() => {
     let authListener: any = null;
@@ -74,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else if (event === 'SIGNED_OUT') {
             setSession(null);
             setUser(null);
+            console.log('User signed out, clearing session state');
           }
           
           setIsLoading(false);
@@ -129,24 +157,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      console.log('Signing out user');
-      const { error } = await supabase.auth.signOut();
+      console.log('Signing out user...');
+      
+      // First, clear cookies by signing out from the auth API
+      const { error } = await supabase.auth.signOut({
+        scope: 'global' // Sign out from all devices
+      });
       
       if (error) {
-        console.error('Error signing out:', error);
+        console.error('Error signing out from Supabase:', error);
+        throw error;
       }
       
-      // Clear state immediately regardless of API response
+      // Explicitly clear auth state
       setUser(null);
       setSession(null);
       
-      // Force redirect to login page after signout
-      window.location.href = '/admin';
+      // Clear any auth-related cookies manually
+      document.cookie = 'supabase-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      document.cookie = 'sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      document.cookie = 'auth_active=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      
+      console.log('Sign out complete, redirecting to login page');
+      
+      // Add a small delay before redirecting to ensure state is cleared
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Force redirect to login page
+      window.location.replace('/admin');
     } catch (error) {
       console.error('Sign out process error:', error);
       // Still clear state even if there's an error
       setUser(null);
       setSession(null);
+      
+      // Attempt redirect anyway
+      window.location.href = '/admin';
     }
   };
 
@@ -156,6 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading,
     signIn,
     signOut,
+    refreshSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
