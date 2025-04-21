@@ -159,40 +159,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('Signing out user...');
       
-      // First, clear cookies by signing out from the auth API
+      // First, clear all client-side state
+      setUser(null);
+      setSession(null);
+      
+      // Clear ALL auth-related cookies manually BEFORE calling signOut API
+      document.cookie = 'supabase-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=' + window.location.hostname;
+      document.cookie = 'sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=' + window.location.hostname;
+      document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=' + window.location.hostname;
+      document.cookie = 'auth_active=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=' + window.location.hostname;
+      document.cookie = 'auth_redirect=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=' + window.location.hostname;
+      
+      // Call signOut API with global scope option to clear all devices
       const { error } = await supabase.auth.signOut({
         scope: 'global' // Sign out from all devices
       });
       
       if (error) {
         console.error('Error signing out from Supabase:', error);
-        throw error;
       }
-      
-      // Explicitly clear auth state
-      setUser(null);
-      setSession(null);
-      
-      // Clear any auth-related cookies manually
-      document.cookie = 'supabase-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-      document.cookie = 'sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-      document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-      document.cookie = 'auth_active=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
       
       console.log('Sign out complete, redirecting to login page');
       
-      // Add a small delay before redirecting to ensure state is cleared
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Create a very small delay to ensure everything is cleared
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Force redirect to login page
-      window.location.replace('/admin');
+      // Force reload the page completely to clear any cached state
+      window.location.href = '/admin';
+      
+      // As a backup, if the above doesn't trigger immediately, use replace
+      setTimeout(() => {
+        window.location.replace('/admin');
+      }, 500);
+      
     } catch (error) {
       console.error('Sign out process error:', error);
       // Still clear state even if there's an error
       setUser(null);
       setSession(null);
       
-      // Attempt redirect anyway
+      // Force reload in case of error
       window.location.href = '/admin';
     }
   };

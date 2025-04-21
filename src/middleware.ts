@@ -7,6 +7,21 @@ export async function middleware(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
     console.log('Middleware running for path:', pathname);
     
+    // Handle sign-out redirect to login page
+    if (pathname === '/signout') {
+      // Create a response to redirect to login
+      const response = NextResponse.redirect(new URL('/admin', request.url));
+      
+      // Clear all auth-related cookies
+      response.cookies.delete('sb-access-token');
+      response.cookies.delete('sb-refresh-token');
+      response.cookies.delete('supabase-auth-token');
+      response.cookies.delete('auth_active');
+      response.cookies.delete('auth_redirect');
+      
+      return response;
+    }
+    
     // Create a new response
     const res = NextResponse.next();
     
@@ -40,6 +55,18 @@ export async function middleware(request: NextRequest) {
     // Get the current URL for potential redirects
     const url = new URL(request.url);
     
+    // Check if there's a signout parameter - special case for forced signout
+    if (url.searchParams.has('signout')) {
+      const response = NextResponse.redirect(new URL('/admin', request.url));
+      // Clear all auth cookies
+      response.cookies.delete('sb-access-token');
+      response.cookies.delete('sb-refresh-token');
+      response.cookies.delete('supabase-auth-token');
+      response.cookies.delete('auth_active');
+      response.cookies.delete('auth_redirect');
+      return response;
+    }
+    
     // ===== Handle routes =====
     // 1. Admin dashboard redirect if already logged in
     if (pathname === '/admin' && session) {
@@ -64,6 +91,7 @@ export async function middleware(request: NextRequest) {
         res.cookies.delete('sb-refresh-token');
         res.cookies.delete('supabase-auth-token');
         res.cookies.delete('auth_active');
+        res.cookies.delete('auth_redirect');
         
         return NextResponse.redirect(new URL('/admin', request.url));
       }
@@ -100,5 +128,5 @@ export async function middleware(request: NextRequest) {
 
 // Only run middleware on admin routes
 export const config = {
-  matcher: ['/admin', '/admin/:path*'],
+  matcher: ['/admin', '/admin/:path*', '/signout'],
 }; 

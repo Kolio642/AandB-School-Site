@@ -30,12 +30,23 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     try {
       setIsLoading(true);
       console.log('Signing out from admin layout...');
-      await signOut(); // Uses the signOut method from auth context
-      // No need to redirect here as the signOut method already handles it
+      
+      // Attempt standard sign-out first
+      await signOut();
+      
+      // As a fallback, if we're still on a protected page after 1 second
+      // use the middleware's special signout route
+      setTimeout(() => {
+        if (document.location.pathname.startsWith('/admin/')) {
+          console.log('Fallback: Using signout redirect route');
+          window.location.href = '/signout';
+        }
+      }, 1000);
+      
     } catch (error) {
       console.error('Sign out error:', error);
-      // Fallback redirect in case of error
-      window.location.href = '/admin';
+      // Emergency fallback - direct navigation
+      window.location.href = '/admin?signout=true';
     } finally {
       setIsLoading(false);
     }
