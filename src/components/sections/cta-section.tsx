@@ -13,7 +13,6 @@ export function CTASection({ locale }: CTASectionProps) {
       title: "Join Our School Community",
       subtitle: "Take the first step towards providing your child with an exceptional educational experience",
       buttons: {
-        apply: "Apply Now",
         contact: "Contact Us"
       }
     },
@@ -21,13 +20,15 @@ export function CTASection({ locale }: CTASectionProps) {
       title: "Присъединете се към нашата училищна общност",
       subtitle: "Направете първата стъпка към осигуряването на изключителен образователен опит за вашето дете",
       buttons: {
-        apply: "Кандидатствайте сега",
         contact: "Свържете се с нас"
       }
     }
   };
   
-  const t = translations[locale as keyof typeof translations];
+  // Use fallback mechanism to ensure we always have translations
+  const t = locale && translations[locale as keyof typeof translations] 
+    ? translations[locale as keyof typeof translations] 
+    : translations.en;
   
   return (
     <section className="py-16 md:py-24 bg-primary text-primary-foreground">
@@ -39,13 +40,8 @@ export function CTASection({ locale }: CTASectionProps) {
           <p className="text-xl mb-8 text-primary-foreground/80">
             {t.subtitle}
           </p>
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div>
             <Button asChild size="lg" variant="secondary">
-              <Link href={`/${locale}/admissions`}>
-                {t.buttons.apply}
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="bg-transparent border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10">
               <Link href={`/${locale}/contacts`}>
                 {t.buttons.contact}
               </Link>

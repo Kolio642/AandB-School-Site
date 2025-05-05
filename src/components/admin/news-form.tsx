@@ -1,288 +1,428 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { z } from 'zod';
 import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import dynamic from 'next/dynamic';
-import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-
-// Dynamically import React Quill to avoid SSR issues
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
-import 'react-quill/dist/quill.snow.css';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/lib/supabase';
+import { format } from 'date-fns';
 
 const newsSchema = z.object({
-  title_en: z.string().min(1, { message: 'English title is required' }),
-  title_bg: z.string().min(1, { message: 'Bulgarian title is required' }),
-  summary_en: z.string().min(1, { message: 'English summary is required' }),
-  summary_bg: z.string().min(1, { message: 'Bulgarian summary is required' }),
-  date: z.string().min(1, { message: 'Date is required' }),
-  image: z.string().min(1, { message: 'Image URL is required' }),
+  title_en: z.string().min(3, 'Title is required (min 3 characters)'),
+  title_bg: z.string().min(3, 'Title is required (min 3 characters)'),
+  summary_en: z.string().min(10, 'Summary is required (min 10 characters)'),
+  summary_bg: z.string().min(10, 'Summary is required (min 10 characters)'),
+  content_en: z.string().min(50, 'Content is required (min 50 characters)'),
+  content_bg: z.string().min(50, 'Content is required (min 50 characters)'),
+  date: z.string().refine(val => !isNaN(Date.parse(val)), {
+    message: 'Please enter a valid date',
+  }),
   published: z.boolean().default(false),
+  image: z.string().optional().or(z.literal('')),
 });
 
 type NewsFormValues = z.infer<typeof newsSchema>;
 
 interface NewsFormProps {
+  initialData?: any;
   newsId?: string;
+  onSubmit?: (data: NewsFormValues) => Promise<void>;
 }
 
-export function NewsForm({ newsId }: NewsFormProps) {
+export function NewsForm({ initialData, newsId, onSubmit }: NewsFormProps) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(!!newsId);
-  const [content_en, setContent_en] = useState('');
-  const [content_bg, setContent_bg] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [newsData, setNewsData] = useState<any>(initialData);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.image || null);
+  const [activeTab, setActiveTab] = useState('english');
 
-  const form = useForm<NewsFormValues>({
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors, isDirty } } = useForm<NewsFormValues>({
     resolver: zodResolver(newsSchema),
-    defaultValues: {
+    defaultValues: newsData || {
       title_en: '',
       title_bg: '',
       summary_en: '',
       summary_bg: '',
+      content_en: '',
+      content_bg: '',
       date: new Date().toISOString().split('T')[0],
-      image: '',
       published: false,
+      image: '',
     },
   });
 
+  // Fetch news data if newsId is provided
   useEffect(() => {
-    const fetchNewsItem = async () => {
-      if (!newsId) return;
+    if (newsId && !initialData) {
+      const fetchNews = async () => {
+        setIsLoading(true);
+        try {
+          const { data, error } = await supabase
+            .from('news')
+            .select('*')
+            .eq('id', newsId)
+            .single();
 
-      try {
-        setIsLoadingData(true);
-        setError(null);
+          if (error) throw error;
+          
+          setNewsData(data);
+          if (data?.image) {
+            setImagePreview(data.image);
+          }
 
-        const { data, error } = await supabase
-          .from('news')
-          .select('*')
-          .eq('id', newsId)
-          .single();
-
-        if (error) throw error;
-
-        if (data) {
-          form.reset({
-            title_en: data.title_en || '',
-            title_bg: data.title_bg || '',
-            summary_en: data.summary_en || '',
-            summary_bg: data.summary_bg || '',
-            date: data.date ? new Date(data.date).toISOString().split('T')[0] : '',
-            image: data.image || '',
-            published: data.published || false,
+          // Update form values with the fetched data
+          Object.entries(data).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+              setValue(key as any, value);
+            }
           });
-
-          setContent_en(data.content_en || '');
-          setContent_bg(data.content_bg || '');
+          
+          // Format date for input field if it exists
+          if (data.date) {
+            try {
+              // Try to parse and format the date
+              const dateObj = new Date(data.date);
+              const formattedDate = format(dateObj, 'yyyy-MM-dd');
+              setValue('date', formattedDate);
+            } catch (dateError) {
+              console.error('Error formatting date:', dateError);
+              // Keep original date string if parsing fails
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching news:', err);
+          setError('Failed to load news data');
+        } finally {
+          setIsLoading(false);
         }
-      } catch (error: any) {
-        console.error('Error fetching news item:', error);
-        setError(error.message || 'Failed to load news item');
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
-
-    fetchNewsItem();
-  }, [newsId, form]);
-
-  async function onSubmit(data: NewsFormValues) {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const newsData = {
-        ...data,
-        content_en,
-        content_bg,
-        updated_at: new Date().toISOString(),
       };
 
-      let response;
+      fetchNews();
+    }
+  }, [newsId, initialData, setValue]);
 
-      if (newsId) {
-        // Update existing news
-        response = await supabase
-          .from('news')
-          .update(newsData)
-          .eq('id', newsId);
-      } else {
-        // Create new news
-        response = await supabase
-          .from('news')
-          .insert([newsData]);
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      const formData = { ...initialData };
+      
+      // Format date if it exists
+      if (formData.date) {
+        try {
+          const dateObj = new Date(formData.date);
+          formData.date = format(dateObj, 'yyyy-MM-dd');
+        } catch (err) {
+          console.error('Error formatting date:', err);
+        }
       }
+      
+      reset(formData);
+      setImagePreview(formData.image || null);
+    }
+  }, [initialData, reset]);
 
-      if (response.error) throw response.error;
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Convert file to data URI instead of blob URL to avoid CSP issues
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setImagePreview(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+    
+    setImageFile(file);
+  };
 
+  const handleFormSubmit = async (data: NewsFormValues) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Upload image if there's a new one
+      if (imageFile) {
+        const fileName = `news/${Date.now()}-${imageFile.name}`;
+        
+        try {
+          console.log('Attempting to upload to storage');
+          
+          // Try direct upload to the 'public' bucket
+          const { error: uploadError, data: uploadData } = await supabase.storage
+            .from('public')
+            .upload(fileName, imageFile, {
+              cacheControl: '3600',
+              upsert: true
+            });
+            
+          if (uploadError) {
+            console.error('Upload error:', uploadError.message);
+            
+            // If we're updating an existing record and already have an image, use the existing one
+            if (newsId && newsData?.image) {
+              data.image = newsData.image;
+              console.log('Keeping existing image instead');
+            } else {
+              // For news, we made the image optional in the schema
+              data.image = '';
+              console.log('Proceeding without image');
+            }
+          } else {
+            // Upload succeeded
+            const { data: urlData } = supabase.storage.from('public').getPublicUrl(fileName);
+            data.image = urlData.publicUrl;
+            console.log('Successfully uploaded image:', urlData.publicUrl);
+          }
+        } catch (error) {
+          console.error('Unexpected error during upload:', error);
+          // If upload completely fails, use existing image or proceed without one
+          if (newsId && newsData?.image) {
+            data.image = newsData.image;
+          } else {
+            data.image = '';
+          }
+        }
+      }
+      
+      if (onSubmit) {
+        await onSubmit(data);
+      } else if (newsId) {
+        // Default update behavior if no onSubmit provided
+        const { error: updateError } = await supabase
+          .from('news')
+          .update(data)
+          .eq('id', newsId);
+          
+        if (updateError) throw updateError;
+        
+        // Force refresh after successful update
+        router.refresh();
+      } else {
+        // Default insert behavior if no onSubmit or newsId provided
+        const { error: insertError } = await supabase
+          .from('news')
+          .insert(data);
+          
+        if (insertError) throw insertError;
+        
+        // Force refresh after successful insert
+        router.refresh();
+      }
+      
+      // Only navigate away after successful operation
       router.push('/admin/news');
-      router.refresh();
-    } catch (error: any) {
-      setError(error.message || 'Failed to save news item');
-      console.error('Save error:', error);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save news item');
+      console.error('Error saving news item:', err);
     } finally {
       setIsLoading(false);
     }
-  }
-
-  if (isLoadingData) {
-    return (
-      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 text-2xl font-bold">Loading News Item...</div>
-          <div className="text-muted-foreground">Please wait while we fetch the news data.</div>
-        </div>
-      </div>
-    );
-  }
+  };
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="title_en">English Title</Label>
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      <Tabs defaultValue="english" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="english">English</TabsTrigger>
+          <TabsTrigger value="bulgarian">Bulgarian</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="english" className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title_en">Title (English)</Label>
             <Input
               id="title_en"
-              {...form.register('title_en')}
+              {...register('title_en')}
+              disabled={isLoading}
             />
-            {form.formState.errors.title_en && (
-              <p className="text-sm text-red-500 mt-1">{form.formState.errors.title_en.message}</p>
+            {errors.title_en && (
+              <p className="text-sm text-red-500">{errors.title_en.message}</p>
             )}
           </div>
-
-          <div>
-            <Label htmlFor="summary_en">English Summary</Label>
-            <textarea
+          
+          <div className="space-y-2">
+            <Label htmlFor="summary_en">Summary (English)</Label>
+            <Textarea
               id="summary_en"
-              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              {...form.register('summary_en')}
+              {...register('summary_en')}
+              disabled={isLoading}
+              rows={3}
             />
-            {form.formState.errors.summary_en && (
-              <p className="text-sm text-red-500 mt-1">{form.formState.errors.summary_en.message}</p>
+            {errors.summary_en && (
+              <p className="text-sm text-red-500">{errors.summary_en.message}</p>
             )}
           </div>
-
-          <div>
-            <Label>English Content</Label>
-            <div className="mt-1">
-              <ReactQuill 
-                theme="snow" 
-                value={content_en} 
-                onChange={setContent_en}
-                className="min-h-[200px]"
-              />
-            </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="content_en">Content (English)</Label>
+            <Textarea
+              id="content_en"
+              {...register('content_en')}
+              disabled={isLoading}
+              rows={10}
+            />
+            {errors.content_en && (
+              <p className="text-sm text-red-500">{errors.content_en.message}</p>
+            )}
           </div>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="title_bg">Bulgarian Title</Label>
+        </TabsContent>
+        
+        <TabsContent value="bulgarian" className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title_bg">Title (Bulgarian)</Label>
             <Input
               id="title_bg"
-              {...form.register('title_bg')}
+              {...register('title_bg')}
+              disabled={isLoading}
             />
-            {form.formState.errors.title_bg && (
-              <p className="text-sm text-red-500 mt-1">{form.formState.errors.title_bg.message}</p>
+            {errors.title_bg && (
+              <p className="text-sm text-red-500">{errors.title_bg.message}</p>
             )}
           </div>
-
-          <div>
-            <Label htmlFor="summary_bg">Bulgarian Summary</Label>
-            <textarea
+          
+          <div className="space-y-2">
+            <Label htmlFor="summary_bg">Summary (Bulgarian)</Label>
+            <Textarea
               id="summary_bg"
-              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              {...form.register('summary_bg')}
+              {...register('summary_bg')}
+              disabled={isLoading}
+              rows={3}
             />
-            {form.formState.errors.summary_bg && (
-              <p className="text-sm text-red-500 mt-1">{form.formState.errors.summary_bg.message}</p>
+            {errors.summary_bg && (
+              <p className="text-sm text-red-500">{errors.summary_bg.message}</p>
             )}
           </div>
-
-          <div>
-            <Label>Bulgarian Content</Label>
-            <div className="mt-1">
-              <ReactQuill 
-                theme="snow" 
-                value={content_bg} 
-                onChange={setContent_bg}
-                className="min-h-[200px]"
-              />
-            </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="content_bg">Content (Bulgarian)</Label>
+            <Textarea
+              id="content_bg"
+              {...register('content_bg')}
+              disabled={isLoading}
+              rows={10}
+            />
+            {errors.content_bg && (
+              <p className="text-sm text-red-500">{errors.content_bg.message}</p>
+            )}
           </div>
+        </TabsContent>
+      </Tabs>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="date">Date</Label>
+          <Input
+            id="date"
+            type="date"
+            {...register('date')}
+            disabled={isLoading}
+          />
+          {errors.date && (
+            <p className="text-sm text-red-500">{errors.date.message}</p>
+          )}
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="image">Image</Label>
+          <Input
+            id="image"
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            disabled={isLoading}
+          />
+          {errors.image && (
+            <p className="text-sm text-red-500">{errors.image.message}</p>
+          )}
         </div>
       </div>
-
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div>
-              <Label htmlFor="date">Publication Date</Label>
-              <Input
-                id="date"
-                type="date"
-                {...form.register('date')}
-              />
-              {form.formState.errors.date && (
-                <p className="text-sm text-red-500 mt-1">{form.formState.errors.date.message}</p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="image">Image URL</Label>
-              <Input
-                id="image"
-                type="text"
-                placeholder="https://example.com/image.jpg"
-                {...form.register('image')}
-              />
-              {form.formState.errors.image && (
-                <p className="text-sm text-red-500 mt-1">{form.formState.errors.image.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-center space-x-2">
-            <input
-              id="published"
-              type="checkbox"
-              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-              {...form.register('published')}
+      
+      {imagePreview && (
+        <div className="mt-2">
+          <Label>Image Preview</Label>
+          <div className="mt-1 border rounded-md overflow-hidden relative">
+            <img 
+              src={imagePreview} 
+              alt="Preview" 
+              className="max-h-40 object-contain w-full" 
+              onError={(e) => {
+                // Handle image load error without causing CSP violations
+                console.error('Image failed to load:', imagePreview);
+                
+                // Use data URI directly as fallback instead of trying multiple files
+                e.currentTarget.src = 'data:image/svg+xml;charset=UTF-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3E%3Crect width="40" height="40" fill="%23f0f0f0"/%3E%3Ctext x="50%25" y="50%25" font-family="sans-serif" font-size="8" text-anchor="middle" dominant-baseline="middle" fill="%23999"%3ENo Image%3C/text%3E%3C/svg%3E';
+                
+                // Prevent further error handling
+                e.currentTarget.onerror = null;
+                e.currentTarget.alt = 'Image preview unavailable';
+              }}
             />
-            <Label htmlFor="published" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Publish immediately
-            </Label>
+            <button 
+              type="button"
+              onClick={() => {
+                setImagePreview(null);
+                setValue('image', '');
+              }}
+              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+              title="Remove image"
+            >
+              ×
+            </button>
           </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-end gap-4">
-        <Button 
-          type="button" 
-          variant="outline" 
+        </div>
+      )}
+      
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="published"
+          checked={watch('published')}
+          onCheckedChange={(checked) => setValue('published', checked)}
+          disabled={isLoading}
+        />
+        <Label htmlFor="published">Publish this news item</Label>
+      </div>
+      
+      {error && (
+        <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm">
+          {error}
+        </div>
+      )}
+      
+      <div className="flex justify-end space-x-2">
+        <Button
+          type="button"
+          variant="outline"
           onClick={() => router.push('/admin/news')}
           disabled={isLoading}
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Saving...' : newsId ? 'Update News' : 'Create News'}
+        <Button 
+          type="submit" 
+          disabled={isLoading || (!isDirty && !imageFile)}
+          className="bg-primary hover:bg-primary/90 text-white font-medium min-w-[120px]"
+          aria-busy={isLoading}
+        >
+          {isLoading ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Saving...
+            </span>
+          ) : (
+            'Save News Item'
+          )}
         </Button>
       </div>
     </form>

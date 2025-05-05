@@ -1,10 +1,20 @@
 'use client';
 
 import { supabase } from '@/lib/supabase';
-import NewsForm from '@/components/admin/news-form';
+import { NewsForm } from '@/components/admin';
 
 export default function NewNewsPage() {
-  const handleSubmit = async (data: { title: string; content: string }) => {
+  const handleSubmit = async (data: {
+    title_en: string;
+    title_bg: string;
+    summary_en: string;
+    summary_bg: string;
+    date: string;
+    image: string;
+    published: boolean;
+    content_en?: string;
+    content_bg?: string;
+  }) => {
     const { error } = await supabase
       .from('news')
       .insert([data]);

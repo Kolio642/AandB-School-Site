@@ -44,18 +44,22 @@ export function Header({ locale }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link href={`/${locale}`} className="mr-6 flex items-center space-x-2">
-            <span className="font-bold text-xl">{locale === 'en' ? 'A&B School' : 'Школа A&B'}</span>
+      <div className="container flex h-16 items-center">
+        <div className="flex flex-1 items-center justify-between">
+          <Link 
+            href={`/${locale}`} 
+            className="flex items-center gap-2 mr-4 text-xl font-bold" 
+            aria-label={locale === 'en' ? 'A&B School' : 'Школа A&B'}
+          >
+            {locale === 'en' ? 'A&B School' : 'Школа A&B'}
           </Link>
           
-          <nav className="hidden md:flex gap-6">
+          <nav className="hidden md:flex items-center gap-6 mx-4">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-sm font-medium transition-colors hover:text-primary"
+                className="text-sm font-medium transition-colors hover:text-primary focus:text-primary focus:outline-none"
               >
                 {item.label}
               </Link>
@@ -63,7 +67,7 @@ export function Header({ locale }: HeaderProps) {
           </nav>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           <div className="hidden md:block">
             <LanguageSwitcher locale={locale} variant="default" />
           </div>

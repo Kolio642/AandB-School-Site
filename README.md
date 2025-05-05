@@ -76,8 +76,8 @@ This website is built for A&B School, providing information about the school's e
 
 ```
 AandB-School-Site/
-├── .cloudflare/         # Cloudflare configuration
 ├── database/            # Database schema and migrations
+├── docker/              # Docker configuration files
 ├── locales/             # Translation files
 ├── public/              # Static assets
 ├── src/
@@ -104,33 +104,75 @@ AandB-School-Site/
 └── tsconfig.json
 ```
 
-## Deployment to Cloudflare Pages
+## Deployment
 
-### Automatic Deployment (via GitHub)
+The application can be deployed to any hosting provider that supports Next.js applications.
 
-1. Push your code to GitHub
-2. Connect your repository to Cloudflare Pages
-3. Configure build settings:
-   - Build command: `npm run build`
-   - Build output directory: `.next`
-   - Environment variables: Set `NODE_VERSION` to `18`
+### Building for Production
 
-### Manual Deployment
+```bash
+npm run build
+```
 
-1. Install Wrangler CLI:
-   ```bash
-   npm install -g wrangler
-   ```
+### Using Docker
 
-2. Login to Cloudflare:
-   ```bash
-   wrangler login
-   ```
+You can also deploy using Docker:
 
-3. Build and deploy:
-   ```bash
-   npm run deploy
-   ```
+```bash
+# From the project root
+cd docker
+docker-compose up -d
+```
+
+For more details on Docker deployment, see the [Docker README](docker/README.md).
+
+## Documentation
+
+Comprehensive documentation is available in the following files:
+
+- **[DOCUMENTATION.md](DOCUMENTATION.md)**: Main project documentation covering all aspects of the site
+- **[Authentication-Flow.md](Authentication-Flow.md)**: Detailed explanation of the authentication system
+- **[CODE-STRUCTURE.md](CODE-STRUCTURE.md)**: Code organization standards and patterns
+- **[docker/README.md](docker/README.md)**: Docker deployment configuration and options
+
+These documentation files cover:
+- Technical architecture and technology stack
+- Features and functionality
+- Database structure and security
+- Authentication flow and security
+- Internationalization implementation
+- Development workflow
+- Deployment options
+- Troubleshooting and maintenance
+- Code style guidelines and patterns
+
+## Security
+
+The A&B School website implements several security measures:
+
+- **Authentication**: Secure admin access via Supabase Auth
+- **Database Security**: Row-level security policies in Supabase
+- **CSRF Protection**: Protection against cross-site request forgery
+- **Input Validation**: All user inputs validated with Zod
+- **Content Security**: Sanitization of user-generated content
+- **Session Management**: Secure HTTP-only cookies and proper session handling
+
+For more details on security implementation, see the [Authentication-Flow.md](Authentication-Flow.md) document.
+
+## Testing
+
+The website can be tested using:
+
+```bash
+# Run linting
+npm run lint
+
+# Run type checking
+npm run type-check
+
+# Start development server for manual testing
+npm run dev
+```
 
 ## License
 
@@ -192,4 +234,18 @@ To populate your database with sample data:
 
 ### Accessing the Admin Dashboard
 
-The admin dashboard is available at `/admin`. You'll need to sign in with your Supabase admin credentials 
+The admin dashboard is available at `/admin`. You'll need to sign in with your Supabase admin credentials.
+
+## Troubleshooting
+
+If you encounter issues during setup or deployment, consult the following resources:
+
+1. Check the troubleshooting sections in [DOCUMENTATION.md](DOCUMENTATION.md)
+2. For authentication issues, see [Authentication-Flow.md](Authentication-Flow.md)
+3. For Docker-related problems, refer to [docker/README.md](docker/README.md)
+
+Common issues and solutions:
+- **Database connection problems**: Verify Supabase credentials and network access
+- **Authentication issues**: Check browser console for specific error messages
+- **Build errors**: Ensure all dependencies are installed and compatible
+- **Docker deployment**: Check container logs with `docker-compose logs` 

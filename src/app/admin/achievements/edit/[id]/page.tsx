@@ -1,6 +1,6 @@
 'use client';
 
-import { AchievementForm } from '@/components/admin/achievement-form';
+import { AchievementForm } from '@/components/admin';
 
 interface EditAchievementPageProps {
   params: {

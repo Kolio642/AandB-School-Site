@@ -2,12 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import NewsForm from '@/components/admin/news-form';
+import { NewsForm } from '@/components/admin';
 
 interface NewsItem {
   id: string;
-  title: string;
-  content: string;
+  title_en: string;
+  title_bg: string;
+  summary_en: string;
+  summary_bg: string;
+  content_en: string;
+  content_bg: string;
+  date: string;
+  image: string;
+  published: boolean;
 }
 
 export default function EditNewsPage({ params }: { params: { id: string } }) {
@@ -35,7 +42,17 @@ export default function EditNewsPage({ params }: { params: { id: string } }) {
     }
   }
 
-  const handleSubmit = async (data: { title: string; content: string }) => {
+  const handleSubmit = async (data: {
+    title_en: string;
+    title_bg: string;
+    summary_en: string;
+    summary_bg: string;
+    date: string;
+    image: string;
+    published: boolean;
+    content_en?: string;
+    content_bg?: string;
+  }) => {
     const { error } = await supabase
       .from('news')
       .update(data)

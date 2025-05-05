@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import type { Metadata } from 'next';
 
+// Opt out of static generation for all admin routes
+export const dynamic = 'force-dynamic';
+
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
@@ -16,32 +19,34 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
-  const { signOut, user } = useAuth();
+  const { signOut, user, isLoading: authLoading } = useAuth();
 
   // Redirect to login if not authenticated (except on login page)
   useEffect(() => {
-    if (pathname !== '/admin' && !user) {
+    console.log('Admin layout auth check:', { user: !!user, authLoading, pathname });
+    
+    if (!authLoading && !user && pathname !== '/admin' && !pathname.startsWith('/admin/login')) {
       console.log('No authenticated user detected in layout, redirecting to login');
-      window.location.replace('/admin');
+      window.location.href = '/admin';
     }
-  }, [pathname, user]);
+  }, [pathname, user, authLoading]);
 
   const handleSignOut = async () => {
     try {
       setIsLoading(true);
       console.log('Signing out from admin layout...');
       
-      // Attempt standard sign-out first
+      // Clear cookies first
+      document.cookie = 'sb-refresh-token=; path=/; max-age=0; samesite=lax';
+      document.cookie = 'sb-access-token=; path=/; max-age=0; samesite=lax';
+      document.cookie = 'dashboard_visited=; path=/; max-age=0; samesite=lax';
+      document.cookie = 'auth_success=; path=/; max-age=0; samesite=lax';
+      
+      // Sign out via auth context
       await signOut();
       
-      // As a fallback, if we're still on a protected page after 1 second
-      // use the middleware's special signout route
-      setTimeout(() => {
-        if (document.location.pathname.startsWith('/admin/')) {
-          console.log('Fallback: Using signout redirect route');
-          window.location.href = '/signout';
-        }
-      }, 1000);
+      // Navigate directly to the signout endpoint
+      window.location.href = '/signout';
       
     } catch (error) {
       console.error('Sign out error:', error);
@@ -53,8 +58,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   // Only render children on login page
-  if (pathname === '/admin') {
+  if (pathname === '/admin' || pathname.startsWith('/admin/login')) {
     return children;
+  }
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin h-10 w-10 rounded-full border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   const NavLink = ({ href, children, isActive = false }: { href: string; children: React.ReactNode; isActive?: boolean }) => (

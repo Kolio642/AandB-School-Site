@@ -1,5 +1,0 @@
-name = "aandb-school-website"
-compatibility_date = "2023-09-04"
-
-# Cloudflare Pages configuration
-pages_build_output_dir = "out" 

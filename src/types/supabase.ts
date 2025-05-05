@@ -27,7 +27,7 @@ export interface Database {
           content_en: string
           content_bg: string
           date: string
-          image: string
+          image: string | null
           published: boolean
         }
         Insert: {
@@ -41,7 +41,7 @@ export interface Database {
           content_en: string
           content_bg: string
           date: string
-          image: string
+          image?: string | null
           published?: boolean
         }
         Update: {
@@ -55,7 +55,7 @@ export interface Database {
           content_en?: string
           content_bg?: string
           date?: string
-          image?: string
+          image?: string | null
           published?: boolean
         }
       }
@@ -101,6 +101,91 @@ export interface Database {
           student_name?: string | null
           category?: string
           published?: boolean
+        }
+      }
+      teachers: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          name: string
+          title_en: string
+          title_bg: string
+          bio_en: string
+          bio_bg: string
+          image: string | null
+          email: string | null
+          published: boolean
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          name: string
+          title_en: string
+          title_bg: string
+          bio_en: string
+          bio_bg: string
+          image?: string | null
+          email?: string | null
+          published?: boolean
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          name?: string
+          title_en?: string
+          title_bg?: string
+          bio_en?: string
+          bio_bg?: string
+          image?: string | null
+          email?: string | null
+          published?: boolean
+          sort_order?: number
+        }
+      }
+      courses: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          title_en: string
+          title_bg: string
+          description_en: string
+          description_bg: string
+          image: string | null
+          category: string
+          published: boolean
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          title_en: string
+          title_bg: string
+          description_en: string
+          description_bg: string
+          image?: string | null
+          category: string
+          published?: boolean
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          title_en?: string
+          title_bg?: string
+          description_en?: string
+          description_bg?: string
+          image?: string | null
+          category?: string
+          published?: boolean
+          sort_order?: number
         }
       }
     }

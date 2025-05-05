@@ -44,8 +44,4 @@ next-env.d.ts
 !.vscode/extensions.json
 !.vscode/settings.json
 !.vscode/tasks.json
-!.vscode/launch.json
-
-# Cloudflare
-.wrangler/
-.dev.vars 
+!.vscode/launch.json 

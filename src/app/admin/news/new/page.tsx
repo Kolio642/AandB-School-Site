@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { NewsForm } from '@/components/admin/news-form';
+import { NewsForm } from '@/components/admin';
 import { supabase } from '@/lib/supabase';
 
 export default function NewNewsPage() {

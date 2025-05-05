@@ -2,24 +2,28 @@ import '../styles/globals.css';
 import { locales } from '@/lib/i18n';
 import type { Metadata } from 'next';
 import { Inter, Montserrat, JetBrains_Mono } from 'next/font/google';
+import { AuthProvider } from '@/context/auth-context';
 
 // Load and configure fonts
 const inter = Inter({
   subsets: ['latin', 'latin-ext', 'cyrillic', 'cyrillic-ext'],
   variable: '--font-inter',
   display: 'swap',
+  preload: true,
 });
 
 const montserrat = Montserrat({
   subsets: ['latin', 'latin-ext', 'cyrillic', 'cyrillic-ext'],
   variable: '--font-montserrat',
   display: 'swap',
+  preload: true,
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin', 'latin-ext', 'cyrillic', 'cyrillic-ext'],
   variable: '--font-jetbrains-mono',
   display: 'swap',
+  preload: true,
 });
 
 /**
@@ -41,8 +45,20 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/images/favicons/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/images/favicons/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon.ico', sizes: '48x48' }
+    ],
+    apple: [
+      { url: '/images/favicons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
+    ],
+    other: [
+      { url: '/images/favicons/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/images/favicons/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' }
+    ]
   },
+  manifest: '/images/favicons/site.webmanifest',
 };
 
 interface RootLayoutProps {
@@ -58,12 +74,28 @@ interface RootLayoutProps {
 export default function RootLayout({ children }: RootLayoutProps) {
   try {
     return (
-      <html lang="en" suppressHydrationWarning>
+      <html 
+        lang="en" 
+        suppressHydrationWarning
+      >
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+          <meta 
+            httpEquiv="Content-Security-Policy" 
+            content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://*.supabase.co; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' https: data:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://*.supabase.in https: wss://*.supabase.co; frame-src 'self' https://*.supabase.co;" 
+          />
+          <meta httpEquiv="X-DNS-Prefetch-Control" content="on" />
+          <link rel="dns-prefetch" href="https://unpkg.com" />
+          <link rel="preconnect" href="https://unpkg.com" />
+          
+          {/* Remove preload for hero image to prevent unused resource warning */}
+          <meta name="theme-color" content="#4f46e5" />
+          <meta httpEquiv="Cache-Control" content="max-age=86400" />
         </head>
         <body className={`${inter.variable} ${montserrat.variable} ${jetbrainsMono.variable} font-sans min-h-screen flex flex-col`}>
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </body>
       </html>
     );

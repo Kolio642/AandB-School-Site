@@ -47,5 +47,13 @@
     "contact": "Contact Us",
     "submit": "Submit",
     "back": "Back"
+  },
+  "teachers": {
+    "meta": {
+      "title": "Our Teachers | A&B School",
+      "description": "Meet our exceptional team of experienced educators at A&B School of Mathematics and Informatics in Shumen, Bulgaria."
+    },
+    "title": "Our Teachers",
+    "subtitle": "Meet our team of experienced and dedicated educators who inspire and guide our students to achieve their full potential."
   }
 } 

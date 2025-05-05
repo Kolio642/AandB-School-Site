@@ -1,17 +1,16 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
-import type { User, Session } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
-type AuthContextType = {
+interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ user: User; session: Session } | void>;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
-  refreshSession: () => Promise<void>;
-};
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -20,199 +19,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Create Supabase client using the browser client from SSR package
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
-  // Function to refresh the session
-  const refreshSession = async () => {
-    try {
-      console.log('Manually refreshing session...');
-      const { data, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('Error refreshing session:', error);
-        return;
-      }
-      
-      if (data.session) {
-        setSession(data.session);
-        setUser(data.session.user);
-        console.log('Session refreshed successfully');
-      } else {
-        // No valid session found
-        setSession(null);
-        setUser(null);
-        console.log('No valid session found during refresh');
-      }
-    } catch (e) {
-      console.error('Unexpected error refreshing session:', e);
-    }
-  };
-
   useEffect(() => {
-    let authListener: any = null;
+    console.log('Auth provider initializing...');
+    
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting session:', error);
+      } else {
+        console.log('Session retrieved:', session ? 'Session exists' : 'No session');
+      }
+      
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsLoading(false);
+    });
 
-    async function loadUserData() {
-      try {
-        console.log('Loading user session data...');
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log('Session data loaded:', !!data.session);
-        if (data.session) {
-          setSession(data.session);
-          setUser(data.session.user);
-        } else {
-          setSession(null);
-          setUser(null);
-        }
-      } catch (e) {
-        console.error('Unexpected error loading user data:', e);
-      } finally {
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('Auth state changed:', event);
+        setSession(session);
+        setUser(session?.user ?? null);
         setIsLoading(false);
       }
+    );
 
-      // Set up auth state change listener
-      authListener = supabase.auth.onAuthStateChange(
-        async (event, newSession) => {
-          console.log('Auth state changed:', event, !!newSession);
-          
-          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            setSession(newSession);
-            setUser(newSession?.user ?? null);
-            
-            // Force refreshing the session to ensure cookies are properly set
-            if (newSession) {
-              try {
-                await supabase.auth.getSession();
-                console.log('Session refreshed after auth state change');
-              } catch (error) {
-                console.error('Error refreshing session:', error);
-              }
-            }
-          } else if (event === 'SIGNED_OUT') {
-            setSession(null);
-            setUser(null);
-            console.log('User signed out, clearing session state');
-          }
-          
-          setIsLoading(false);
-        }
-      );
-    }
-
-    loadUserData();
-
-    return () => {
-      console.log('Cleaning up auth listener');
-      if (authListener) {
-        authListener.subscription.unsubscribe();
-      }
-    };
-  }, [supabase.auth]);
+    return () => subscription.unsubscribe();
+  }, []);
 
   const signIn = async (email: string, password: string) => {
+    console.log(`Signing in user: ${email}`);
     try {
-      console.log('Signing in with email:', email);
-      const { data, error } = await supabase.auth.signInWithPassword({ 
-        email, 
-        password 
-      });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
-        console.error('Supabase auth error:', error);
-        throw error;
+        console.error('Sign in error:', error);
+        return { error };
       }
       
-      if (!data.session) {
-        console.error('No session returned after login');
-        throw new Error('Login failed - no session created');
-      }
-      
-      console.log('Successfully signed in, setting user and session');
-      // Explicitly update state to ensure UI reflects the change
-      setUser(data.user);
-      setSession(data.session);
-      
-      // Force refresh session data to ensure cookies are properly set
-      await supabase.auth.getSession();
-      
-      // Add a small delay to ensure session is fully set before redirecting
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      return data;
-    } catch (error) {
-      console.error('Login process error:', error);
-      throw error;
+      console.log('Sign in successful:', data.session ? 'Session created' : 'No session created');
+      return { error: null };
+    } catch (err) {
+      console.error('Unexpected error during sign in:', err);
+      return { error: err };
     }
   };
 
   const signOut = async () => {
+    console.log('Signing out user...');
     try {
-      console.log('Signing out user...');
-      
-      // First, clear all client-side state
-      setUser(null);
-      setSession(null);
-      
-      // Clear ALL auth-related cookies manually BEFORE calling signOut API
-      document.cookie = 'supabase-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=' + window.location.hostname;
-      document.cookie = 'sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=' + window.location.hostname;
-      document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=' + window.location.hostname;
-      document.cookie = 'auth_active=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=' + window.location.hostname;
-      document.cookie = 'auth_redirect=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=' + window.location.hostname;
-      
-      // Call signOut API with global scope option to clear all devices
-      const { error } = await supabase.auth.signOut({
-        scope: 'global' // Sign out from all devices
-      });
-      
+      const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('Error signing out from Supabase:', error);
+        console.error('Error signing out:', error);
+      } else {
+        console.log('Sign out successful');
       }
-      
-      console.log('Sign out complete, redirecting to login page');
-      
-      // Create a very small delay to ensure everything is cleared
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Force reload the page completely to clear any cached state
-      window.location.href = '/admin';
-      
-      // As a backup, if the above doesn't trigger immediately, use replace
-      setTimeout(() => {
-        window.location.replace('/admin');
-      }, 500);
-      
-    } catch (error) {
-      console.error('Sign out process error:', error);
-      // Still clear state even if there's an error
-      setUser(null);
-      setSession(null);
-      
-      // Force reload in case of error
-      window.location.href = '/admin';
+    } catch (err) {
+      console.error('Unexpected error during sign out:', err);
     }
   };
 
-  const value = {
-    user,
-    session,
-    isLoading,
-    signIn,
-    signOut,
-    refreshSession,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, session, isLoading, signIn, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export const useAuth = () => {

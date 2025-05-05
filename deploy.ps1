@@ -1,7 +1,7 @@
-# A&B School Website Deployment Script for Cloudflare Pages
-# This script helps automate the deployment process
+# A&B School Website Deployment Script
+# This script helps automate the build process
 
-Write-Host "🚀 Starting deployment process for A&B School Website..." -ForegroundColor Cyan
+Write-Host "🚀 Starting build process for A&B School Website..." -ForegroundColor Cyan
 
 # Check if Node.js is installed
 try {
@@ -39,24 +39,5 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "✅ Build completed successfully" -ForegroundColor Green
-
-# Check if Wrangler is installed
-try {
-    $wranglerVersion = npx wrangler -v
-    Write-Host "✅ Wrangler detected" -ForegroundColor Green
-} catch {
-    Write-Host "⚠️ Wrangler not found. Installing..." -ForegroundColor Yellow
-    npm install -g wrangler
-}
-
-# Deploy to Cloudflare Pages
-Write-Host "🚀 Deploying to Cloudflare Pages..." -ForegroundColor Yellow
-npx wrangler pages deploy .next
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "❌ Deployment failed. Please check the errors above." -ForegroundColor Red
-    exit 1
-}
-
-Write-Host "✅ Deployment completed successfully!" -ForegroundColor Green
-Write-Host "🌐 Your website should be available at your Cloudflare Pages URL" -ForegroundColor Cyan 
+Write-Host "🌐 The build output is in the .next directory" -ForegroundColor Cyan
+Write-Host "📝 Deploy according to your hosting provider's instructions" -ForegroundColor Yellow 

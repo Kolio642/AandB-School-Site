@@ -1,301 +1,422 @@
-'use client';
-
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { z } from 'zod';
 import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import dynamic from 'next/dynamic';
-import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-
-// Dynamically import React Quill to avoid SSR issues
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
-import 'react-quill/dist/quill.snow.css';
-
-const categoryOptions = [
-  'Math Competition',
-  'Informatics Competition',
-  'Science Olympiad',
-  'Art Competition',
-  'Sports Achievement',
-  'School Award',
-  'Other'
-];
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/lib/supabase';
+import { format } from 'date-fns';
 
 const achievementSchema = z.object({
-  title_en: z.string().min(1, { message: 'English title is required' }),
-  title_bg: z.string().min(1, { message: 'Bulgarian title is required' }),
-  student_name: z.string().optional(),
-  category: z.string().min(1, { message: 'Category is required' }),
-  date: z.string().min(1, { message: 'Date is required' }),
-  image: z.string().optional(),
+  title_en: z.string().min(3, 'Title is required (min 3 characters)'),
+  title_bg: z.string().min(3, 'Title is required (min 3 characters)'),
+  description_en: z.string().min(10, 'Description is required (min 10 characters)'),
+  description_bg: z.string().min(10, 'Description is required (min 10 characters)'),
+  date: z.string().refine(val => !isNaN(Date.parse(val)), {
+    message: 'Please enter a valid date',
+  }),
+  category: z.string().min(1, 'Category is required'),
   published: z.boolean().default(false),
+  student_name: z.string().optional(),
+  image: z.string().optional(),
 });
 
 type AchievementFormValues = z.infer<typeof achievementSchema>;
 
 interface AchievementFormProps {
+  initialData?: any;
   achievementId?: string;
+  onSubmit?: (data: AchievementFormValues) => Promise<void>;
 }
 
-export function AchievementForm({ achievementId }: AchievementFormProps) {
+export function AchievementForm({ initialData, achievementId, onSubmit }: AchievementFormProps) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(!!achievementId);
-  const [description_en, setDescription_en] = useState('');
-  const [description_bg, setDescription_bg] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [achievementData, setAchievementData] = useState<any>(initialData);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.image || null);
+  const [activeTab, setActiveTab] = useState('english');
 
-  const form = useForm<AchievementFormValues>({
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors, isDirty } } = useForm<AchievementFormValues>({
     resolver: zodResolver(achievementSchema),
-    defaultValues: {
+    defaultValues: achievementData || {
       title_en: '',
       title_bg: '',
-      student_name: '',
-      category: '',
+      description_en: '',
+      description_bg: '',
       date: new Date().toISOString().split('T')[0],
-      image: '',
+      category: '',
       published: false,
+      student_name: '',
+      image: '',
     },
   });
 
+  // Fetch achievement data if achievementId is provided
   useEffect(() => {
-    const fetchAchievement = async () => {
-      if (!achievementId) return;
+    if (achievementId && !initialData) {
+      const fetchAchievement = async () => {
+        setIsLoading(true);
+        try {
+          const { data, error } = await supabase
+            .from('achievements')
+            .select('*')
+            .eq('id', achievementId)
+            .single();
 
-      try {
-        setIsLoadingData(true);
-        setError(null);
-
-        const { data, error } = await supabase
-          .from('achievements')
-          .select('*')
-          .eq('id', achievementId)
-          .single();
-
-        if (error) throw error;
-
-        if (data) {
-          form.reset({
-            title_en: data.title_en || '',
-            title_bg: data.title_bg || '',
-            student_name: data.student_name || '',
-            category: data.category || '',
-            date: data.date ? new Date(data.date).toISOString().split('T')[0] : '',
-            image: data.image || '',
-            published: data.published || false,
+          if (error) throw error;
+          
+          setAchievementData(data);
+          if (data?.image) {
+            setImagePreview(data.image);
+          }
+          
+          // Update form values with the fetched data
+          Object.entries(data).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+              setValue(key as any, value);
+            }
           });
-
-          setDescription_en(data.description_en || '');
-          setDescription_bg(data.description_bg || '');
+          
+          // Format date for input field if it exists
+          if (data.date) {
+            try {
+              // Try to parse and format the date (handles different date formats)
+              const dateObj = new Date(data.date);
+              const formattedDate = format(dateObj, 'yyyy-MM-dd');
+              setValue('date', formattedDate);
+            } catch (dateError) {
+              console.error('Error formatting date:', dateError);
+              // Keep original date string if parsing fails
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching achievement:', err);
+          setError('Failed to load achievement data');
+        } finally {
+          setIsLoading(false);
         }
-      } catch (error: any) {
-        console.error('Error fetching achievement:', error);
-        setError(error.message || 'Failed to load achievement');
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
-
-    fetchAchievement();
-  }, [achievementId, form]);
-
-  async function onSubmit(data: AchievementFormValues) {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const achievementData = {
-        ...data,
-        description_en,
-        description_bg,
-        updated_at: new Date().toISOString(),
       };
 
-      let response;
+      fetchAchievement();
+    }
+  }, [achievementId, initialData, setValue]);
 
-      if (achievementId) {
-        // Update existing achievement
-        response = await supabase
-          .from('achievements')
-          .update(achievementData)
-          .eq('id', achievementId);
-      } else {
-        // Create new achievement
-        response = await supabase
-          .from('achievements')
-          .insert([achievementData]);
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      const formData = { ...initialData };
+      
+      // Format date if it exists
+      if (formData.date) {
+        try {
+          const dateObj = new Date(formData.date);
+          formData.date = format(dateObj, 'yyyy-MM-dd');
+        } catch (err) {
+          console.error('Error formatting date:', err);
+        }
       }
+      
+      reset(formData);
+      setImagePreview(formData.image || null);
+    }
+  }, [initialData, reset]);
 
-      if (response.error) throw response.error;
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Convert file to data URI instead of blob URL to avoid CSP issues
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setImagePreview(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+    
+    setImageFile(file);
+  };
 
+  const handleFormSubmit = async (data: AchievementFormValues) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Upload image if there's a new one
+      if (imageFile) {
+        const fileName = `achievements/${Date.now()}-${imageFile.name}`;
+        
+        try {
+          console.log('Attempting to upload to storage');
+          
+          // Try direct upload to the 'public' bucket
+          const { error: uploadError, data: uploadData } = await supabase.storage
+            .from('public')
+            .upload(fileName, imageFile, {
+              cacheControl: '3600',
+              upsert: true
+            });
+            
+          if (uploadError) {
+            console.error('Upload error:', uploadError.message);
+            
+            // If we're updating an existing record and already have an image, use the existing one
+            if (achievementId && achievementData?.image) {
+              data.image = achievementData.image;
+              console.log('Keeping existing image instead');
+            } else {
+              // Clear the image field if we can't upload
+              data.image = '';
+              console.log('Proceeding without image');
+            }
+          } else {
+            // Upload succeeded
+            const { data: urlData } = supabase.storage.from('public').getPublicUrl(fileName);
+            data.image = urlData.publicUrl;
+            console.log('Successfully uploaded image:', urlData.publicUrl);
+          }
+        } catch (error) {
+          console.error('Unexpected error during upload:', error);
+          // If upload completely fails, use existing image or proceed without one
+          if (achievementId && achievementData?.image) {
+            data.image = achievementData.image;
+          } else {
+            data.image = '';
+          }
+        }
+      }
+      
+      if (onSubmit) {
+        await onSubmit(data);
+      } else if (achievementId) {
+        // Default update behavior if no onSubmit provided
+        const { error: updateError } = await supabase
+          .from('achievements')
+          .update(data)
+          .eq('id', achievementId);
+          
+        if (updateError) throw updateError;
+        
+        // Force refresh after successful update
+        router.refresh();
+      } else {
+        // Default insert behavior if no onSubmit or achievementId provided
+        const { error: insertError } = await supabase
+          .from('achievements')
+          .insert(data);
+          
+        if (insertError) throw insertError;
+        
+        // Force refresh after successful insert
+        router.refresh();
+      }
+      
+      // Only navigate away after successful operation
       router.push('/admin/achievements');
-      router.refresh();
-    } catch (error: any) {
-      setError(error.message || 'Failed to save achievement');
-      console.error('Save error:', error);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save achievement');
+      console.error('Error saving achievement:', err);
     } finally {
       setIsLoading(false);
     }
-  }
-
-  if (isLoadingData) {
-    return (
-      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 text-2xl font-bold">Loading Achievement...</div>
-          <div className="text-muted-foreground">Please wait while we fetch the achievement data.</div>
-        </div>
-      </div>
-    );
-  }
+  };
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="title_en">English Title</Label>
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      <Tabs defaultValue="english" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="english">English</TabsTrigger>
+          <TabsTrigger value="bulgarian">Bulgarian</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="english" className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title_en">Title (English)</Label>
             <Input
               id="title_en"
-              {...form.register('title_en')}
+              {...register('title_en')}
+              disabled={isLoading}
             />
-            {form.formState.errors.title_en && (
-              <p className="text-sm text-red-500 mt-1">{form.formState.errors.title_en.message}</p>
+            {errors.title_en && (
+              <p className="text-sm text-red-500">{errors.title_en.message}</p>
             )}
           </div>
-
-          <div>
-            <Label>English Description</Label>
-            <div className="mt-1">
-              <ReactQuill 
-                theme="snow" 
-                value={description_en} 
-                onChange={setDescription_en}
-                className="min-h-[200px]"
-              />
-            </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="description_en">Description (English)</Label>
+            <Textarea
+              id="description_en"
+              {...register('description_en')}
+              disabled={isLoading}
+              rows={6}
+            />
+            {errors.description_en && (
+              <p className="text-sm text-red-500">{errors.description_en.message}</p>
+            )}
           </div>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="title_bg">Bulgarian Title</Label>
+        </TabsContent>
+        
+        <TabsContent value="bulgarian" className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title_bg">Title (Bulgarian)</Label>
             <Input
               id="title_bg"
-              {...form.register('title_bg')}
+              {...register('title_bg')}
+              disabled={isLoading}
             />
-            {form.formState.errors.title_bg && (
-              <p className="text-sm text-red-500 mt-1">{form.formState.errors.title_bg.message}</p>
+            {errors.title_bg && (
+              <p className="text-sm text-red-500">{errors.title_bg.message}</p>
             )}
           </div>
-
-          <div>
-            <Label>Bulgarian Description</Label>
-            <div className="mt-1">
-              <ReactQuill 
-                theme="snow" 
-                value={description_bg} 
-                onChange={setDescription_bg}
-                className="min-h-[200px]"
-              />
-            </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="description_bg">Description (Bulgarian)</Label>
+            <Textarea
+              id="description_bg"
+              {...register('description_bg')}
+              disabled={isLoading}
+              rows={6}
+            />
+            {errors.description_bg && (
+              <p className="text-sm text-red-500">{errors.description_bg.message}</p>
+            )}
           </div>
+        </TabsContent>
+      </Tabs>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="date">Date</Label>
+          <Input
+            id="date"
+            type="date"
+            {...register('date')}
+            disabled={isLoading}
+          />
+          {errors.date && (
+            <p className="text-sm text-red-500">{errors.date.message}</p>
+          )}
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="category">Category</Label>
+          <Input
+            id="category"
+            {...register('category')}
+            disabled={isLoading}
+            placeholder="e.g., Competition, Award"
+          />
+          {errors.category && (
+            <p className="text-sm text-red-500">{errors.category.message}</p>
+          )}
         </div>
       </div>
-
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div>
-              <Label htmlFor="student_name">Student Name (optional)</Label>
-              <Input
-                id="student_name"
-                {...form.register('student_name')}
-                placeholder="Enter student name if applicable"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="category">Category</Label>
-              <select
-                id="category"
-                {...form.register('category')}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <option value="">Select a category</option>
-                {categoryOptions.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-              {form.formState.errors.category && (
-                <p className="text-sm text-red-500 mt-1">{form.formState.errors.category.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 mt-4">
-            <div>
-              <Label htmlFor="date">Achievement Date</Label>
-              <Input
-                id="date"
-                type="date"
-                {...form.register('date')}
-              />
-              {form.formState.errors.date && (
-                <p className="text-sm text-red-500 mt-1">{form.formState.errors.date.message}</p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="image">Image URL (optional)</Label>
-              <Input
-                id="image"
-                type="text"
-                placeholder="https://example.com/image.jpg"
-                {...form.register('image')}
-              />
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-center space-x-2">
-            <input
-              id="published"
-              type="checkbox"
-              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-              {...form.register('published')}
+      
+      <div className="space-y-2">
+        <Label htmlFor="student_name">Student Name (Optional)</Label>
+        <Input
+          id="student_name"
+          {...register('student_name')}
+          disabled={isLoading}
+          placeholder="Name of the student who achieved this (if applicable)"
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="image">Image (Optional)</Label>
+        <Input
+          id="image"
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+          disabled={isLoading}
+        />
+      </div>
+      
+      {imagePreview && (
+        <div className="mt-2">
+          <Label>Image Preview</Label>
+          <div className="mt-1 border rounded-md overflow-hidden relative">
+            <img 
+              src={imagePreview} 
+              alt="Preview" 
+              className="max-h-40 object-contain w-full" 
+              onError={(e) => {
+                // Handle image load error without causing CSP violations
+                console.error('Image failed to load:', imagePreview);
+                
+                // Use data URI directly as fallback instead of trying multiple files
+                e.currentTarget.src = 'data:image/svg+xml;charset=UTF-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3E%3Crect width="40" height="40" fill="%23f0f0f0"/%3E%3Ctext x="50%25" y="50%25" font-family="sans-serif" font-size="8" text-anchor="middle" dominant-baseline="middle" fill="%23999"%3ENo Image%3C/text%3E%3C/svg%3E';
+                
+                // Prevent further error handling
+                e.currentTarget.onerror = null;
+                e.currentTarget.alt = 'Image preview unavailable';
+              }}
             />
-            <Label htmlFor="published" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Publish immediately
-            </Label>
+            <button 
+              type="button"
+              onClick={() => {
+                setImagePreview(null);
+                setValue('image', '');
+              }}
+              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+              title="Remove image"
+            >
+              ×
+            </button>
           </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-end gap-4">
-        <Button 
-          type="button" 
-          variant="outline" 
+        </div>
+      )}
+      
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="published"
+          checked={watch('published')}
+          onCheckedChange={(checked) => setValue('published', checked)}
+          disabled={isLoading}
+        />
+        <Label htmlFor="published">Publish this achievement</Label>
+      </div>
+      
+      {error && (
+        <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm">
+          {error}
+        </div>
+      )}
+      
+      <div className="flex justify-end space-x-2">
+        <Button
+          type="button"
+          variant="outline"
           onClick={() => router.push('/admin/achievements')}
           disabled={isLoading}
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Saving...' : achievementId ? 'Update Achievement' : 'Create Achievement'}
+        <Button 
+          type="submit" 
+          disabled={isLoading || (!isDirty && !imageFile)}
+          className="bg-primary hover:bg-primary/90 text-white font-medium min-w-[120px]"
+          aria-busy={isLoading}
+        >
+          {isLoading ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Saving...
+            </span>
+          ) : (
+            'Save Achievement'
+          )}
         </Button>
       </div>
     </form>

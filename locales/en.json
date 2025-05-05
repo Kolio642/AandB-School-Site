@@ -67,7 +67,7 @@
     "about": "About A&B School",
     "description": "A&B School is dedicated to providing quality education and fostering the development of young minds in a supportive and innovative environment.",
     "contact": "Contact Information",
-    "address": "123 Education Street, Sofia, Bulgaria",
+    "address": "123 Education St., Sofia, Bulgaria",
     "phone": "+359 2 123 4567",
     "email": "info@abschool.bg",
     "links": "Quick Links",
@@ -75,5 +75,13 @@
     "team": "Our Team",
     "achievements": "Achievements",
     "copyright": "© {year} A&B School. All rights reserved."
+  },
+  "teachers": {
+    "meta": {
+      "title": "Our Teachers | A&B School",
+      "description": "Meet our exceptional team of experienced educators at A&B School of Mathematics and Informatics in Shumen, Bulgaria."
+    },
+    "title": "Our Teachers",
+    "subtitle": "Meet our team of experienced and dedicated educators who inspire and guide our students to achieve their full potential."
   }
 } 

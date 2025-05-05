@@ -1,5 +1,5 @@
 import { Locale } from "@/lib/i18n";
-import { supabase } from "@/lib/supabase";
+import { supabase, cachedFetch } from "@/lib/supabase";
 
 export interface NewsItem {
   id: string;
@@ -36,7 +36,7 @@ export const newsItems: NewsItem[] = [
   {
     id: "opening-2023",
     date: "2023-09-01",
-    image: "/images/news/opening-2023.jpg",
+    image: "/images/hero-image.jpg",
     translations: {
       bg: {
         title: "Откриване на учебната 2023-2024 година",
@@ -68,7 +68,7 @@ export const newsItems: NewsItem[] = [
   {
     id: "competition-results-2023",
     date: "2023-12-15",
-    image: "/images/news/competition-2023.jpg",
+    image: "/images/hero-image.jpg",
     translations: {
       bg: {
         title: "Отлично представяне на нашите ученици на състезанието по информатика",
@@ -99,7 +99,7 @@ export const newsItems: NewsItem[] = [
   {
     id: "summer-courses-2024",
     date: "2024-05-20",
-    image: "/images/news/summer-2024.jpg",
+    image: "/images/hero-image.jpg",
     translations: {
       bg: {
         title: "Летни курсове 2024",
@@ -132,125 +132,125 @@ export const newsItems: NewsItem[] = [
 ];
 
 /**
- * Get all news items, sorted by date (newest first)
- * Combines static news items with data from Supabase
+ * Converts a Supabase news item to our application's NewsItem format
+ */
+function mapSupabaseNewsToNewsItem(item: SupabaseNewsItem): NewsItem {
+  return {
+    id: item.id,
+    date: typeof item.published === 'string' ? item.published : item.created_at,
+    image: item.image_url || '/images/hero-image.jpg', // Ensure fallback image
+    translations: {
+      en: {
+        title: item.title || '',
+        summary: item.title || '',  // Using title as fallback summary
+        content: item.content || ''
+      },
+      bg: {
+        title: item.title || '',
+        summary: item.title || '',  // Using title as fallback summary
+        content: item.content || ''
+      }
+    }
+  };
+}
+
+/**
+ * Get all news items from the data source
+ * Returns data sorted by date descending (newest first)
  */
 export async function getAllNews(): Promise<NewsItem[]> {
   try {
-    // First try to get news from Supabase
-    const { data: supabaseNews, error } = await supabase
-      .from('news')
-      .select('*')
-      .eq('published', true)
-      .order('date', { ascending: false });
-    
-    if (error) {
-      console.error('Error fetching news from Supabase:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
-      
-      // Fall back to static data if there's an error
-      return [...newsItems].sort((a, b) => 
-        new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
-    }
-    
-    if (supabaseNews && supabaseNews.length > 0) {
-      // Convert Supabase data to NewsItem format
-      const convertedNews: NewsItem[] = supabaseNews.map(item => ({
-        id: item.id,
-        date: item.date,
-        image: item.image || undefined,
-        translations: {
-          en: {
-            title: item.title_en,
-            summary: item.summary_en,
-            content: item.content_en
-          },
-          bg: {
-            title: item.title_bg,
-            summary: item.summary_bg,
-            content: item.content_bg
-          }
+    return await cachedFetch('all_news', async () => {
+      // First try from Supabase
+      if (supabase) {
+        const { data, error } = await supabase
+          .from('news')
+          .select('*')
+          .eq('published', true)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          console.error("Error fetching news from Supabase:", error);
+        } else if (data && data.length > 0) {
+          return data.map(mapSupabaseNewsToNewsItem);
         }
-      }));
+      }
       
-      // Combine with static items
-      return [...convertedNews, ...newsItems].sort((a, b) => 
-        new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
-    }
-    
-    // If no Supabase data, return static data
-    return [...newsItems].sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+      // Fallback to static data if Supabase is not available or returned no results
+      return [...newsItems].sort((a, b) => {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+    });
   } catch (error) {
-    // Log any unhandled errors
-    console.error('Unhandled error in getAllNews:', error);
-    
-    // Fall back to static data for resilience
-    return [...newsItems].sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    console.error("Error in getAllNews:", error);
+    // Fallback to static data in case of any error
+    return [...newsItems].sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
   }
 }
 
 /**
- * Get a specific news item by ID
+ * Get news item by ID
  */
 export async function getNewsById(id: string): Promise<NewsItem | undefined> {
   try {
-    // First check if it's a static news item
-    const staticItem = newsItems.find(item => item.id === id);
-    if (staticItem) {
-      return staticItem;
-    }
-    
-    // If not found in static items, check Supabase
-    const { data: supabaseItem, error } = await supabase
-      .from('news')
-      .select('*')
-      .eq('slug', id)
-      .eq('published', true)
-      .single();
-    
-    if (error || !supabaseItem) {
-      console.error('Error fetching news item from Supabase:', error);
-      return undefined;
-    }
-    
-    // Convert to expected format
-    return {
-      id: supabaseItem.slug,
-      date: new Date(supabaseItem.published_at).toISOString().split('T')[0],
-      image: supabaseItem.image_url,
-      translations: {
-        en: {
-          title: supabaseItem.title,
-          summary: supabaseItem.content.substring(0, 150) + '...',
-          content: supabaseItem.content
-        },
-        bg: {
-          title: supabaseItem.title, // If you don't have separate languages yet
-          summary: supabaseItem.content.substring(0, 150) + '...',
-          content: supabaseItem.content
+    return await cachedFetch(`news_${id}`, async () => {
+      // First try from Supabase
+      if (supabase) {
+        // Try to find by slug first (preferred)
+        let { data, error } = await supabase
+          .from('news')
+          .select('*')
+          .eq('slug', id)
+          .eq('published', true)
+          .single();
+          
+        if (error) {
+          // If not found by slug, try by ID
+          const result = await supabase
+            .from('news')
+            .select('*')
+            .eq('id', id)
+            .eq('published', true)
+            .single();
+            
+          if (result.error) {
+            console.error("Error fetching news by ID from Supabase:", result.error);
+          } else if (result.data) {
+            return mapSupabaseNewsToNewsItem(result.data);
+          }
+        } else if (data) {
+          return mapSupabaseNewsToNewsItem(data);
         }
       }
-    };
+      
+      // Fallback to static data
+      return newsItems.find(item => item.id === id);
+    });
   } catch (error) {
-    console.error('Unexpected error fetching news item:', error);
-    return undefined;
+    console.error("Error in getNewsById:", error);
+    // Fallback to static data
+    return newsItems.find(item => item.id === id);
   }
 }
 
 /**
- * Get the latest news items (limit specifies how many)
+ * Get the latest news items
+ * @param limit Number of items to return
  */
 export async function getLatestNews(limit: number = 3): Promise<NewsItem[]> {
-  const allNews = await getAllNews();
-  return allNews.slice(0, limit);
+  try {
+    return await cachedFetch(`latest_news_${limit}`, async () => {
+      const allNews = await getAllNews();
+      return allNews.slice(0, limit);
+    });
+  } catch (error) {
+    console.error("Error in getLatestNews:", error);
+    // Fallback to static data
+    const sortedItems = [...newsItems].sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+    return sortedItems.slice(0, limit);
+  }
 } 

@@ -53,19 +53,28 @@ export function LanguageSwitcher({ locale, variant = 'default' }: LanguageSwitch
     return null;
   }
   
+  const localeLabels = {
+    en: 'English',
+    bg: 'Български'
+  };
+  
   if (variant === 'pill') {
     return (
-      <div className="flex items-center overflow-hidden rounded-full bg-muted/50 p-1 text-sm" aria-label="Language selector">
+      <div 
+        className="flex items-center overflow-hidden rounded-full bg-muted/50 p-1 text-sm shadow-sm" 
+        role="group"
+        aria-label="Language selector"
+      >
         {locales.map((lang) => (
           <Link 
             key={lang} 
             href={createLocalePath(lang)}
-            aria-label={`Switch to ${lang === 'en' ? 'English' : 'Bulgarian'}`}
+            aria-label={`Switch to ${localeLabels[lang as keyof typeof localeLabels]}`}
             aria-current={locale === lang ? 'page' : undefined}
-            className={`rounded-full px-3 py-1 font-medium transition-colors ${
+            className={`flex items-center justify-center rounded-full px-3 py-1.5 font-medium transition-colors min-w-[40px] ${
               locale === lang 
                 ? 'bg-background text-foreground shadow-sm' 
-                : 'text-muted-foreground hover:text-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/80 active:bg-muted/90'
             }`}
           >
             {lang.toUpperCase()}
@@ -76,18 +85,22 @@ export function LanguageSwitcher({ locale, variant = 'default' }: LanguageSwitch
   }
   
   return (
-    <div className="flex items-center gap-1" aria-label="Language selector">
+    <div 
+      className="flex items-center gap-1" 
+      role="group"
+      aria-label="Language selector"
+    >
       {locales.map((lang) => (
         <Link 
           key={lang} 
           href={createLocalePath(lang)}
-          aria-label={`Switch to ${lang === 'en' ? 'English' : 'Bulgarian'}`}
+          aria-label={`Switch to ${localeLabels[lang as keyof typeof localeLabels]}`}
           aria-current={locale === lang ? 'page' : undefined}
         >
           <Button 
             variant={locale === lang ? 'default' : 'ghost'} 
             size="sm" 
-            className="w-10 px-2"
+            className="w-11 h-9 px-2 font-medium text-sm"
           >
             {lang.toUpperCase()}
           </Button>

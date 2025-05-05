@@ -1,10 +1,20 @@
 'use client';
 
 import { supabase } from '@/lib/supabase';
-import AchievementForm from '@/components/admin/achievement-form';
+import { AchievementForm } from '@/components/admin';
 
 export default function NewAchievementPage() {
-  const handleSubmit = async (data: { title: string; description: string; date: string }) => {
+  const handleSubmit = async (data: {
+    title_en: string;
+    title_bg: string;
+    description_en: string;
+    description_bg: string;
+    category: string;
+    date: string;
+    published: boolean;
+    student_name?: string;
+    image?: string;
+  }) => {
     const { error } = await supabase
       .from('achievements')
       .insert([data]);

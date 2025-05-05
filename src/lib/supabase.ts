@@ -1,5 +1,5 @@
 // This file provides legacy support for components using the old supabase import
-// New components should import from @supabase/ssr directly
+// New components should import from @supabase/supabase-js directly
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/supabase';
 
@@ -33,36 +33,30 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const responseCache = new Map<string, { data: any; timestamp: number }>();
 
 // Create the Supabase client with options
-// Note: Most client components should use createBrowserClient from @supabase/ssr
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce',
-  },
   global: {
     // Use custom fetch with caching for GET requests
     fetch: customFetch
+  },
+  auth: {
+    autoRefreshToken: true, 
+    persistSession: true,
+    detectSessionInUrl: true,
+    // Explicitly set storage to use cookies
+    storageKey: 'sb-auth-token'
   }
 });
 
-// Create a service role client for admin operations (server-side only)
-export const supabaseAdmin = supabaseServiceKey 
+// Create admin client with service role key if available
+export const supabaseAdmin = supabaseServiceKey
   ? createClient<Database>(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      }
+      global: {
+        headers: {
+          'x-supabase-auth-type': 'service_role',
+        },
+      },
     })
-  : null;
-
-/**
- * Check if the service role client is available
- */
-export function hasServiceRole(): boolean {
-  return !!supabaseAdmin;
-}
+  : supabase;
 
 /**
  * Cached fetch function for Supabase data

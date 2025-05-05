@@ -4,6 +4,12 @@ declare namespace L {
   function tileLayer(urlTemplate: string, options?: TileLayerOptions): TileLayer;
   function marker(latLng: LatLngExpression, options?: MarkerOptions): Marker;
   
+  // Add control namespace
+  const control: {
+    zoom(options?: ZoomOptions): Control;
+    attribution(options?: AttributionOptions): Control;
+  };
+  
   interface MapOptions {
     center?: LatLngExpression;
     zoom?: number;
@@ -16,6 +22,7 @@ declare namespace L {
   interface Map {
     setView(center: LatLngExpression, zoom?: number): this;
     remove(): void;
+    invalidateSize(options?: { animate?: boolean; pan?: boolean; debounceMoveend?: boolean; }): this;
   }
   
   interface TileLayerOptions {
@@ -45,6 +52,19 @@ declare namespace L {
   
   interface Icon {
     options: any;
+  }
+
+  interface ZoomOptions {
+    position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
+  }
+
+  interface AttributionOptions {
+    position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
+    prefix?: string;
+  }
+
+  interface Control {
+    addTo(map: Map): this;
   }
 }
 

@@ -40,7 +40,6 @@ export function OpenStreetMap({
   // Handle script load
   const handleScriptLoad = () => {
     setIsMapLibLoaded(true);
-    console.log('Leaflet library loaded');
   };
 
   // Initialize map when Leaflet is loaded and we're in the browser
@@ -50,15 +49,26 @@ export function OpenStreetMap({
     }
 
     try {
-      console.log('Initializing OpenStreetMap');
-      
       // Create map instance
-      const map = L.map(mapId).setView([latitude, longitude], zoom);
+      const map = L.map(mapId, {
+        zoomControl: false,
+        attributionControl: false
+      }).setView([latitude, longitude], zoom);
       
       // Add tile layer (the actual map imagery)
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
+      }).addTo(map);
+      
+      // Add zoom control in a better position
+      L.control.zoom({
+        position: 'bottomright'
+      }).addTo(map);
+      
+      // Add attribution in a better position
+      L.control.attribution({
+        position: 'bottomleft'
       }).addTo(map);
       
       // Add marker at specified location
@@ -69,6 +79,13 @@ export function OpenStreetMap({
         
       // Store map instance for cleanup
       mapInstanceRef.current = map;
+      
+      // Force a resize after map is loaded to prevent gray tiles
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 100);
     } catch (error) {
       console.error('Error initializing OpenStreetMap:', error);
     }
@@ -85,12 +102,14 @@ export function OpenStreetMap({
   return (
     <div className={`${className} relative`} style={{ height, width }}>
       {/* Leaflet CSS */}
-      <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-        crossOrigin=""
-      />
+      {isClient && (
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossOrigin=""
+        />
+      )}
       
       {/* Leaflet JavaScript */}
       {isClient && (
@@ -98,7 +117,7 @@ export function OpenStreetMap({
           src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
           crossOrigin=""
-          strategy="lazyOnload"
+          strategy="afterInteractive"
           onLoad={handleScriptLoad}
         />
       )}

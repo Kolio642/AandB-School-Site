@@ -1,8 +1,23 @@
 import { Locale, locales } from '@/lib/i18n';
 import { Metadata } from 'next';
 import dynamic from 'next/dynamic';
-import { OpenStreetMap } from '@/components/open-street-map';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
+
+// Dynamically import the OpenStreetMap component to improve page load performance
+const OpenStreetMap = dynamic(
+  () => import('@/components/open-street-map').then(mod => mod.OpenStreetMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-full min-h-[400px] bg-gray-100 rounded-2xl animate-pulse">
+        <div className="text-center">
+          <div className="rounded-full h-12 w-12 bg-primary/30 animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading map...</p>
+        </div>
+      </div>
+    ),
+  }
+);
 
 // Dynamically import the contact form component to avoid TypeScript issues
 const ContactForm = dynamic(() => import('@/app/[locale]/contacts/contact-form'), {

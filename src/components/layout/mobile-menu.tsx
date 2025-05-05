@@ -38,13 +38,7 @@ export function MobileMenu({ locale, navItems, testimonial }: MobileMenuProps) {
   
   const toggleMenu = useCallback(() => {
     setIsOpen((prev) => !prev);
-    
-    if (!isOpen) {
-      console.log('Mobile menu opened');
-    } else {
-      console.log('Mobile menu closed');
-    }
-  }, [isOpen]);
+  }, []);
   
   // Handle escape key to close menu
   useEffect(() => {
@@ -53,7 +47,6 @@ export function MobileMenu({ locale, navItems, testimonial }: MobileMenuProps) {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsOpen(false);
-        console.log('Mobile menu closed with Escape key');
       }
     };
     
@@ -70,7 +63,6 @@ export function MobileMenu({ locale, navItems, testimonial }: MobileMenuProps) {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setIsOpen(false);
-        console.log('Mobile menu closed by outside click');
       }
     };
     
@@ -104,62 +96,76 @@ export function MobileMenu({ locale, navItems, testimonial }: MobileMenuProps) {
       <Button
         variant="ghost"
         size="icon"
+        className="h-10 w-10 rounded-full"
         aria-label={isOpen ? "Close Menu" : "Open Menu"}
         aria-expanded={isOpen}
         aria-controls="mobile-menu"
         onClick={toggleMenu}
       >
-        {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
       
       {isOpen && (
         <div 
           ref={menuRef}
           id="mobile-menu"
-          className="fixed inset-0 top-16 z-50 bg-background p-6 animate-in slide-in-from-top-5 overflow-y-auto pb-20"
+          className="fixed inset-0 top-16 z-50 bg-background flex flex-col animate-in slide-in-from-top duration-300 h-[calc(100vh-4rem)] overflow-auto"
           role="dialog"
           aria-modal="true"
           aria-label="Mobile navigation menu"
         >
-          <div className="flex justify-between items-center mb-6">
-            <div className="text-xl font-bold">
-              A&B School
+          <div className="px-6 py-4 border-b sticky top-0 bg-background/95 backdrop-blur-sm z-10">
+            <div className="flex justify-between items-center">
+              <div className="text-xl font-bold">
+                {locale === 'en' ? 'Menu' : 'Меню'}
+              </div>
+              <LanguageSwitcher locale={locale} variant="pill" />
             </div>
-            <LanguageSwitcher locale={locale} variant="pill" />
           </div>
           
-          <nav className="flex flex-col gap-6">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-lg font-medium transition-colors hover:text-primary"
-                onClick={() => {
-                  setIsOpen(false);
-                  console.log(`Mobile menu: navigated to ${item.href}`);
-                }}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          
-          {testimonial && (
-            <div className="mt-10 border-t border-border pt-6">
-              <div className="text-3xl font-serif text-primary opacity-70 mb-2">"</div>
-              <blockquote className="italic text-muted-foreground mb-4">
-                "{testimonial.quote}"
-              </blockquote>
-              <div className="text-sm font-medium">
-                {testimonial.author}
-                {testimonial.role && (
-                  <span className="text-muted-foreground ml-1">
-                    — {testimonial.role}
-                  </span>
-                )}
+          <div className="flex-1 p-6 overflow-auto">
+            <nav className="flex flex-col space-y-4">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-lg font-medium py-3 px-4 rounded-md transition-colors hover:bg-muted/60 active:bg-muted/80 flex items-center"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            
+            {testimonial && (
+              <div className="mt-8 border-t border-border pt-6">
+                <div className="text-3xl font-serif text-primary opacity-70 mb-2">"</div>
+                <blockquote className="italic text-muted-foreground mb-4">
+                  "{testimonial.quote}"
+                </blockquote>
+                <div className="text-sm font-medium">
+                  {testimonial.author}
+                  {testimonial.role && (
+                    <span className="text-muted-foreground ml-1">
+                      — {testimonial.role}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+          
+          <div className="px-6 py-4 mt-auto border-t bg-background/95 backdrop-blur-sm sticky bottom-0">
+            <Button 
+              className="w-full"
+              asChild
+              onClick={() => setIsOpen(false)}
+            >
+              <Link href={`/${locale}/contacts`}>
+                {locale === 'en' ? 'Contact Us' : 'Свържете се с нас'}
+              </Link>
+            </Button>
+          </div>
         </div>
       )}
     </div>

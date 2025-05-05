@@ -15,7 +15,16 @@ interface NewsCardProps {
 }
 
 function NewsCard({ item, locale }: NewsCardProps) {
-  const translation = item.translations[locale];
+  // Ensure we have a translation, or use a fallback
+  const fallbackTranslation = {
+    title: locale === 'en' ? 'News Item' : 'Новина',
+    summary: locale === 'en' ? 'No summary available' : 'Няма налично резюме'
+  };
+  
+  const translation = item.translations && item.translations[locale] 
+    ? item.translations[locale] 
+    : fallbackTranslation;
+    
   const formattedDate = formatDate(new Date(item.date), locale === 'en' ? 'en-US' : 'bg-BG');
   
   return (
@@ -24,7 +33,7 @@ function NewsCard({ item, locale }: NewsCardProps) {
         <div className="relative h-48 w-full overflow-hidden">
           <Image 
             src={item.image}
-            alt={translation.title}
+            alt={translation.title || 'News image'}
             fill
             className="object-cover transition-transform hover:scale-105"
           />
