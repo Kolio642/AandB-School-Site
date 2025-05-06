@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/lib/supabase';
+import { uploadImage, handleDbError, processFormData } from '@/lib/admin-helpers';
 
 const teacherSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -60,17 +61,41 @@ export function TeacherForm({ initialData, teacherId, onSubmit }: TeacherFormPro
     if (teacherId && !initialData) {
       const fetchTeacher = async () => {
         setIsLoading(true);
+        setError(null);
+        
         try {
+          console.log(`Fetching teacher with ID: ${teacherId}`);
           const { data, error } = await supabase
             .from('teachers')
             .select('*')
             .eq('id', teacherId)
             .single();
 
-          if (error) throw error;
+          if (error) {
+            console.error('Error response from Supabase:', error);
+            
+            // Handle the case when teacher doesn't exist (probably deleted)
+            if (error.code === 'PGRST116' || 
+                error.message.includes('rows returned') || 
+                error.details?.includes('0 rows')) {
+              console.log('Teacher not found, redirecting to list page');
+              router.push('/admin/teachers');
+              return;
+            }
+            
+            throw error;
+          }
           
+          if (!data) {
+            console.log('No teacher data returned, redirecting to list page');
+            router.push('/admin/teachers');
+            return;
+          }
+          
+          console.log('Teacher data loaded successfully:', data);
           setTeacherData(data);
-          if (data?.image) {
+          
+          if (data.image) {
             setImagePreview(data.image);
           }
           
@@ -90,7 +115,7 @@ export function TeacherForm({ initialData, teacherId, onSubmit }: TeacherFormPro
 
       fetchTeacher();
     }
-  }, [teacherId, initialData, setValue]);
+  }, [teacherId, initialData, setValue, router]);
 
   // Reset form when initialData changes
   useEffect(() => {
@@ -120,80 +145,70 @@ export function TeacherForm({ initialData, teacherId, onSubmit }: TeacherFormPro
     setIsLoading(true);
     setError(null);
     
+    console.log("Form submission started with data:", data);
+    
     try {
+      // Process the form data
+      const processedData = processFormData(data, {
+        numberFields: ['sort_order'],
+        optionalFields: ['image', 'email'],
+        trimFields: ['name', 'title_en', 'title_bg', 'bio_en', 'bio_bg', 'email']
+      }) as TeacherFormValues;
+      
       // Upload image if there's a new one
       if (imageFile) {
-        const fileName = `teachers/${Date.now()}-${imageFile.name}`;
-        
-        try {
-          console.log('Attempting to upload to storage');
-          
-          // Try direct upload to the 'teachers' bucket instead of 'public'
-          const { error: uploadError, data: uploadData } = await supabase.storage
-            .from('teachers')
-            .upload(fileName, imageFile, {
-              cacheControl: '3600',
-              upsert: true
-            });
-            
-          if (uploadError) {
-            console.error('Upload error:', uploadError.message);
-            
-            // If we're updating an existing record and already have an image, use the existing one
-            if (teacherId && teacherData?.image) {
-              data.image = teacherData.image;
-              console.log('Keeping existing image instead');
-            } else {
-              // Clear the image field if we can't upload
-              data.image = '';
-              console.log('Proceeding without image');
-            }
-          } else {
-            // Upload succeeded - use the teachers bucket for URL
-            const { data: urlData } = supabase.storage.from('teachers').getPublicUrl(fileName);
-            data.image = urlData.publicUrl;
-            console.log('Successfully uploaded image:', urlData.publicUrl);
-          }
-        } catch (error) {
-          console.error('Unexpected error during upload:', error);
-          // If upload completely fails, use existing image or proceed without one
-          if (teacherId && teacherData?.image) {
-            data.image = teacherData.image;
-          } else {
-            data.image = '';
-          }
-        }
+        const imageUrl = await uploadImage(
+          imageFile, 
+          'teachers', 
+          teacherId && teacherData?.image ? teacherData.image : null
+        );
+        processedData.image = imageUrl || undefined;
       }
       
       if (onSubmit) {
-        await onSubmit(data);
+        console.log("Using provided onSubmit handler");
+        await onSubmit(processedData);
       } else if (teacherId) {
         // Default update behavior if no onSubmit provided
-        const { error: updateError } = await supabase
+        console.log("Updating existing teacher with ID:", teacherId);
+        const { error: updateError, data: updatedData } = await supabase
           .from('teachers')
-          .update(data)
-          .eq('id', teacherId);
+          .update(processedData)
+          .eq('id', teacherId)
+          .select();
           
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error("Update error:", updateError);
+          throw updateError;
+        }
         
+        console.log("Teacher updated successfully:", updatedData);
         // Force refresh after successful update
         router.refresh();
       } else {
         // Default insert behavior if no onSubmit or teacherId provided
-        const { error: insertError } = await supabase
+        console.log("Inserting new teacher record");
+        const { error: insertError, data: insertedData } = await supabase
           .from('teachers')
-          .insert(data);
+          .insert(processedData)
+          .select();
           
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("Insert error:", insertError);
+          throw insertError;
+        }
         
+        console.log("Teacher inserted successfully:", insertedData);
         // Force refresh after successful insert
         router.refresh();
       }
       
+      console.log("Form submission successful, navigating to teacher list");
       // Only navigate away after successful operation
       router.push('/admin/teachers');
     } catch (err: any) {
-      setError(err.message || 'Failed to save teacher');
+      console.error('Error saving teacher (detailed):', err);
+      setError(handleDbError(err));
       console.error('Error saving teacher:', err);
     } finally {
       setIsLoading(false);

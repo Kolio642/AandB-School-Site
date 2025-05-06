@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
+import { uploadImage, handleDbError, processFormData } from '@/lib/admin-helpers';
 
 const achievementSchema = z.object({
   title_en: z.string().min(3, 'Title is required (min 3 characters)'),
@@ -63,17 +64,41 @@ export function AchievementForm({ initialData, achievementId, onSubmit }: Achiev
     if (achievementId && !initialData) {
       const fetchAchievement = async () => {
         setIsLoading(true);
+        setError(null);
+        
         try {
+          console.log(`Fetching achievement with ID: ${achievementId}`);
           const { data, error } = await supabase
             .from('achievements')
             .select('*')
             .eq('id', achievementId)
             .single();
 
-          if (error) throw error;
+          if (error) {
+            console.error('Error response from Supabase:', error);
+            
+            // Handle the case when achievement doesn't exist (probably deleted)
+            if (error.code === 'PGRST116' || 
+                error.message.includes('rows returned') || 
+                error.details?.includes('0 rows')) {
+              console.log('Achievement not found, redirecting to achievements list page');
+              router.push('/admin/achievements');
+              return;
+            }
+            
+            throw error;
+          }
           
+          if (!data) {
+            console.log('No achievement data returned, redirecting to achievements list page');
+            router.push('/admin/achievements');
+            return;
+          }
+          
+          console.log('Achievement data loaded successfully:', data);
           setAchievementData(data);
-          if (data?.image) {
+          
+          if (data.image) {
             setImagePreview(data.image);
           }
           
@@ -106,7 +131,7 @@ export function AchievementForm({ initialData, achievementId, onSubmit }: Achiev
 
       fetchAchievement();
     }
-  }, [achievementId, initialData, setValue]);
+  }, [achievementId, initialData, setValue, router]);
 
   // Reset form when initialData changes
   useEffect(() => {
@@ -149,57 +174,29 @@ export function AchievementForm({ initialData, achievementId, onSubmit }: Achiev
     setError(null);
     
     try {
+      // Process the form data
+      const processedData = processFormData(data, {
+        optionalFields: ['image', 'student_name'],
+        trimFields: ['title_en', 'title_bg', 'description_en', 'description_bg', 'student_name', 'category']
+      }) as AchievementFormValues;
+      
       // Upload image if there's a new one
       if (imageFile) {
-        const fileName = `achievements/${Date.now()}-${imageFile.name}`;
-        
-        try {
-          console.log('Attempting to upload to storage');
-          
-          // Try direct upload to the 'public' bucket
-          const { error: uploadError, data: uploadData } = await supabase.storage
-            .from('public')
-            .upload(fileName, imageFile, {
-              cacheControl: '3600',
-              upsert: true
-            });
-            
-          if (uploadError) {
-            console.error('Upload error:', uploadError.message);
-            
-            // If we're updating an existing record and already have an image, use the existing one
-            if (achievementId && achievementData?.image) {
-              data.image = achievementData.image;
-              console.log('Keeping existing image instead');
-            } else {
-              // Clear the image field if we can't upload
-              data.image = '';
-              console.log('Proceeding without image');
-            }
-          } else {
-            // Upload succeeded
-            const { data: urlData } = supabase.storage.from('public').getPublicUrl(fileName);
-            data.image = urlData.publicUrl;
-            console.log('Successfully uploaded image:', urlData.publicUrl);
-          }
-        } catch (error) {
-          console.error('Unexpected error during upload:', error);
-          // If upload completely fails, use existing image or proceed without one
-          if (achievementId && achievementData?.image) {
-            data.image = achievementData.image;
-          } else {
-            data.image = '';
-          }
-        }
+        const imageUrl = await uploadImage(
+          imageFile, 
+          'achievements', 
+          achievementId && achievementData?.image ? achievementData.image : null
+        );
+        processedData.image = imageUrl || undefined;
       }
       
       if (onSubmit) {
-        await onSubmit(data);
+        await onSubmit(processedData);
       } else if (achievementId) {
         // Default update behavior if no onSubmit provided
         const { error: updateError } = await supabase
           .from('achievements')
-          .update(data)
+          .update(processedData)
           .eq('id', achievementId);
           
         if (updateError) throw updateError;
@@ -210,7 +207,7 @@ export function AchievementForm({ initialData, achievementId, onSubmit }: Achiev
         // Default insert behavior if no onSubmit or achievementId provided
         const { error: insertError } = await supabase
           .from('achievements')
-          .insert(data);
+          .insert(processedData);
           
         if (insertError) throw insertError;
         
@@ -221,7 +218,7 @@ export function AchievementForm({ initialData, achievementId, onSubmit }: Achiev
       // Only navigate away after successful operation
       router.push('/admin/achievements');
     } catch (err: any) {
-      setError(err.message || 'Failed to save achievement');
+      setError(handleDbError(err));
       console.error('Error saving achievement:', err);
     } finally {
       setIsLoading(false);

@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { useRouter, usePathname } from 'next/navigation';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
+import { Loader2, RefreshCcw } from 'lucide-react';
 
 interface NewsItem {
   id: string;
@@ -18,6 +19,7 @@ interface NewsItem {
 
 export default function AdminNewsPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,30 +29,66 @@ export default function AdminNewsPage() {
     window.location.href = path;
   };
 
+  const fetchNews = async (refresh: boolean = false) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      console.log('Fetching news data...');
+      
+      // First check auth session
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Current auth session:', session ? 'Active' : 'None');
+      
+      // Use the appropriate client
+      const client = session ? supabase : supabaseAdmin;
+      console.log('Using client:', session ? 'User client' : 'Admin client');
+      
+      const { data, error } = await client
+        .from('news')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) {
+        console.error('Database error during fetch:', error);
+        throw error;
+      }
+
+      console.log('News data received:', data?.length || 0, 'records');
+      setNewsItems(data || []);
+    } catch (error: any) {
+      console.error('Error fetching news:', error);
+      setError(error.message || 'Failed to load news items');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch on initial load
   useEffect(() => {
-    const fetchNews = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+    fetchNews();
+  }, []);
 
-        const { data, error } = await supabase
-          .from('news')
-          .select('*')
-          .order('date', { ascending: false });
+  // Fetch when pathname changes to this page
+  useEffect(() => {
+    if (pathname === '/admin/news') {
+      console.log('News page is active, refreshing data');
+      fetchNews();
+    }
+  }, [pathname]);
 
-        if (error) throw error;
-
-        setNewsItems(data || []);
-      } catch (error: any) {
-        console.error('Error fetching news:', error);
-        setError(error.message || 'Failed to load news items');
-      } finally {
-        setIsLoading(false);
+  // Refresh data when window gains focus (for when user navigates back to the tab)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (pathname === '/admin/news') {
+        console.log('Window focused on news page, refreshing data');
+        fetchNews();
       }
     };
 
-    fetchNews();
-  }, []);
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [pathname]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this news item? This action cannot be undone.')) {
@@ -58,18 +96,56 @@ export default function AdminNewsPage() {
     }
 
     try {
-      const { error } = await supabase
-        .from('news')
-        .delete()
-        .eq('id', id);
+      setIsLoading(true);
+      console.log('Deleting news with ID:', id);
+      
+      // Use direct fetch with service role key
+      const apiKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/news?id=eq.${id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'apikey': apiKey,
+            'Prefer': 'return=minimal',
+          },
+        }
+      );
 
-      if (error) throw error;
-
-      // Update the local state
-      setNewsItems(newsItems.filter(item => item.id !== id));
+      if (!response.ok) {
+        console.error('Delete failed with status:', response.status);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Delete failed with status ${response.status}: ${errorText}`);
+      }
+      
+      console.log('Delete HTTP response:', response.status, response.statusText);
+      console.log('News item deleted successfully');
+      
+      // Update local state immediately
+      setNewsItems(prevItems => prevItems.filter(item => item.id !== id));
+      
+      // Refresh data from server after a short delay
+      setTimeout(() => {
+        fetchNews(true);
+      }, 500);
+      
+      // Show success message
+      alert('News item deleted successfully');
     } catch (error: any) {
       console.error('Error deleting news item:', error);
-      alert(`Failed to delete: ${error.message}`);
+      // More detailed error information
+      if (error.code) {
+        console.error(`Error code: ${error.code}`);
+      }
+      if (error.details) {
+        console.error(`Error details: ${error.details}`);
+      }
+      alert(`Error deleting news item: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -92,10 +168,15 @@ export default function AdminNewsPage() {
     }
   };
 
+  const handleRefresh = () => {
+    fetchNews();
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
         <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
           <div className="mb-4 text-2xl font-bold">Loading News...</div>
           <div className="text-muted-foreground">Please wait while we fetch the news items.</div>
         </div>
@@ -109,7 +190,7 @@ export default function AdminNewsPage() {
         <div className="text-center">
           <div className="mb-4 text-2xl font-bold text-destructive">Error Loading News</div>
           <div className="text-muted-foreground mb-6">{error}</div>
-          <Button onClick={() => window.location.reload()}>Try Again</Button>
+          <Button onClick={handleRefresh}>Try Again</Button>
         </div>
       </div>
     );
@@ -119,7 +200,12 @@ export default function AdminNewsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">News Management</h1>
-        <Button onClick={() => navigateTo('/admin/news/new')}>Add News</Button>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={handleRefresh} size="icon">
+            <RefreshCcw className="h-4 w-4" />
+          </Button>
+          <Button onClick={() => navigateTo('/admin/news/new')}>Add News</Button>
+        </div>
       </div>
 
       {newsItems.length === 0 ? (

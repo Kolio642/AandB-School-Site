@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
+import { uploadImage, handleDbError, processFormData } from '@/lib/admin-helpers';
 
 const newsSchema = z.object({
   title_en: z.string().min(3, 'Title is required (min 3 characters)'),
@@ -63,17 +64,41 @@ export function NewsForm({ initialData, newsId, onSubmit }: NewsFormProps) {
     if (newsId && !initialData) {
       const fetchNews = async () => {
         setIsLoading(true);
+        setError(null);
+        
         try {
+          console.log(`Fetching news with ID: ${newsId}`);
           const { data, error } = await supabase
             .from('news')
             .select('*')
             .eq('id', newsId)
             .single();
 
-          if (error) throw error;
+          if (error) {
+            console.error('Error response from Supabase:', error);
+            
+            // Handle the case when news doesn't exist (probably deleted)
+            if (error.code === 'PGRST116' || 
+                error.message.includes('rows returned') || 
+                error.details?.includes('0 rows')) {
+              console.log('News item not found, redirecting to news list page');
+              router.push('/admin/news');
+              return;
+            }
+            
+            throw error;
+          }
           
+          if (!data) {
+            console.log('No news data returned, redirecting to news list page');
+            router.push('/admin/news');
+            return;
+          }
+          
+          console.log('News data loaded successfully:', data);
           setNewsData(data);
-          if (data?.image) {
+          
+          if (data.image) {
             setImagePreview(data.image);
           }
 
@@ -106,7 +131,7 @@ export function NewsForm({ initialData, newsId, onSubmit }: NewsFormProps) {
 
       fetchNews();
     }
-  }, [newsId, initialData, setValue]);
+  }, [newsId, initialData, setValue, router]);
 
   // Reset form when initialData changes
   useEffect(() => {
@@ -149,57 +174,29 @@ export function NewsForm({ initialData, newsId, onSubmit }: NewsFormProps) {
     setError(null);
     
     try {
+      // Process the form data
+      const processedData = processFormData(data, {
+        optionalFields: ['image', 'content_en', 'content_bg'],
+        trimFields: ['title_en', 'title_bg', 'summary_en', 'summary_bg', 'content_en', 'content_bg']
+      }) as NewsFormValues;
+      
       // Upload image if there's a new one
       if (imageFile) {
-        const fileName = `news/${Date.now()}-${imageFile.name}`;
-        
-        try {
-          console.log('Attempting to upload to storage');
-          
-          // Try direct upload to the 'public' bucket
-          const { error: uploadError, data: uploadData } = await supabase.storage
-            .from('public')
-            .upload(fileName, imageFile, {
-              cacheControl: '3600',
-              upsert: true
-            });
-            
-          if (uploadError) {
-            console.error('Upload error:', uploadError.message);
-            
-            // If we're updating an existing record and already have an image, use the existing one
-            if (newsId && newsData?.image) {
-              data.image = newsData.image;
-              console.log('Keeping existing image instead');
-            } else {
-              // For news, we made the image optional in the schema
-              data.image = '';
-              console.log('Proceeding without image');
-            }
-          } else {
-            // Upload succeeded
-            const { data: urlData } = supabase.storage.from('public').getPublicUrl(fileName);
-            data.image = urlData.publicUrl;
-            console.log('Successfully uploaded image:', urlData.publicUrl);
-          }
-        } catch (error) {
-          console.error('Unexpected error during upload:', error);
-          // If upload completely fails, use existing image or proceed without one
-          if (newsId && newsData?.image) {
-            data.image = newsData.image;
-          } else {
-            data.image = '';
-          }
-        }
+        const imageUrl = await uploadImage(
+          imageFile, 
+          'news', 
+          newsId && newsData?.image ? newsData.image : null
+        );
+        processedData.image = imageUrl || undefined;
       }
       
       if (onSubmit) {
-        await onSubmit(data);
+        await onSubmit(processedData);
       } else if (newsId) {
         // Default update behavior if no onSubmit provided
         const { error: updateError } = await supabase
           .from('news')
-          .update(data)
+          .update(processedData)
           .eq('id', newsId);
           
         if (updateError) throw updateError;
@@ -210,7 +207,7 @@ export function NewsForm({ initialData, newsId, onSubmit }: NewsFormProps) {
         // Default insert behavior if no onSubmit or newsId provided
         const { error: insertError } = await supabase
           .from('news')
-          .insert(data);
+          .insert(processedData);
           
         if (insertError) throw insertError;
         
@@ -221,7 +218,7 @@ export function NewsForm({ initialData, newsId, onSubmit }: NewsFormProps) {
       // Only navigate away after successful operation
       router.push('/admin/news');
     } catch (err: any) {
-      setError(err.message || 'Failed to save news item');
+      setError(handleDbError(err));
       console.error('Error saving news item:', err);
     } finally {
       setIsLoading(false);
