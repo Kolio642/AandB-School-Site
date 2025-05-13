@@ -115,7 +115,9 @@ export function NewsForm({ initialData, newsId, onSubmit }: NewsFormProps) {
       // Handle image upload if file is selected
       if (imageFile) {
         const imageUrl = await uploadImage(imageFile, 'news', data.image);
-        processedData.image = imageUrl;
+        if (imageUrl) {
+          processedData.image = imageUrl;
+        }
       }
       
       // Call the provided onSubmit handler
