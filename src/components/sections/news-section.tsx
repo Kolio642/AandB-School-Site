@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { Locale } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
-import { getLatestNews, NewsItem } from '@/data/news';
+import { getLatestNews, NewsItem } from '@/lib/data';
 
 interface NewsSectionProps {
   locale: Locale;

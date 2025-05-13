@@ -2,7 +2,7 @@ import { Locale, locales } from '@/lib/i18n';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getAllNews } from '@/data/news';
+import { getAllNews } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
 

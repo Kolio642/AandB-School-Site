@@ -2,7 +2,7 @@ import { Locale, locales } from '@/lib/i18n';
 import { Metadata } from 'next';
 import Image from 'next/image';
 import { formatDate } from '@/lib/utils';
-import { getAllAchievements } from '@/data/achievements';
+import { getAllAchievements } from '@/lib/data';
 
 interface AchievementsPageProps {
   params: {

@@ -2,7 +2,7 @@ import { Locale, locales } from '@/lib/i18n';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getNewsById, getAllNews } from '@/data/news';
+import { getNewsById, getAllNews } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
