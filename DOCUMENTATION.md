@@ -23,7 +23,7 @@ The A&B School Website is a modern, responsive web application built for A&B Sch
 AandB-School-Site/
 ├── src/
 │   ├── app/             # Next.js App Router pages and layouts
-│   │   ├── [locale]/    # Internationalized routes
+│   │   ├── [locale]/    # Internationalized routes for public pages
 │   │   ├── admin/       # Admin dashboard (non-localized)
 │   │   └── api/         # API routes
 │   ├── components/      # Reusable UI components
@@ -216,8 +216,9 @@ The authentication system is built on Supabase Auth and follows this flow:
 The website uses a custom internationalization solution:
 
 1. **Route Structure**:
-   - Locale included in the route: `/[locale]/page`
-   - Static export supports all locales
+   - Locale included in the route for public pages: `/[locale]/page`
+   - Admin routes are non-localized at `/admin/*` for simplicity
+   - Static export supports all locales for public routes
 
 2. **Translation Access**:
    - Translations stored in JSON files
@@ -269,14 +270,14 @@ The website uses a custom internationalization solution:
 ### Environment Setup
 
 1. Clone the repository
-2. Install dependencies: `npm install`
+2. Install dependencies: `pnpm install`
 3. Configure environment variables:
    - Copy `.env.local.example` to `.env.local`
    - Update with your Supabase credentials
 
 ### Local Development
 
-- Run development server: `npm run dev`
+- Run development server: `pnpm run dev`
 - Access site at: `http://localhost:3000`
 
 ### Database Setup
@@ -287,8 +288,8 @@ The website uses a custom internationalization solution:
 
 ### Building for Production
 
-- Create production build: `npm run build`
-- Test production build: `npm run start`
+- Create production build: `pnpm run build`
+- Test production build: `pnpm run start`
 
 ## Deployment
 
@@ -299,8 +300,8 @@ The website can be deployed through various methods:
 Deploy as a Node.js application on platforms like Vercel or Netlify:
 
 ```
-npm run build
-npm run start
+pnpm run build
+pnpm run start
 ```
 
 ### Static Export
@@ -308,7 +309,7 @@ npm run start
 For static hosting environments:
 
 ```
-npm run build
+pnpm run build
 ```
 
 The output will be in the `out` directory.
@@ -364,7 +365,7 @@ docker-compose up -d nextjs
 
 4. **Build Errors**: 
    - Ensure all dependencies are installed and compatible
-   - Check for TypeScript errors with `npm run type-check`
+   - Check for TypeScript errors with `pnpm run type-check`
    - Verify Node.js version matches `.nvmrc` (use nvm if available)
 
 5. **Authentication Issues**:

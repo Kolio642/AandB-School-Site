@@ -16,6 +16,7 @@ This website is built for A&B School, providing information about the school's e
 - **Mobile-First Design**: Fully responsive across all device sizes
 - **Admin Dashboard**: Secure admin area for managing news and achievements
 - **Database Integration**: Supabase backend for storing and retrieving dynamic content
+- **File Storage**: Comprehensive file management with Supabase Storage
 
 ## Technologies
 
@@ -25,7 +26,7 @@ This website is built for A&B School, providing information about the school's e
 - **[TailwindCSS](https://tailwindcss.com/)**: Utility-first CSS framework
 - **[Leaflet.js](https://leafletjs.com/)**: Open-source JavaScript library for mobile-friendly interactive maps
 - **[Lucide Icons](https://lucide.dev/)**: Beautiful open-source icons
-- **[Supabase](https://supabase.com/)**: Open source Firebase alternative for database and authentication
+- **[Supabase](https://supabase.com/)**: Open source Firebase alternative for database, authentication, and storage
 - **[React Hook Form](https://react-hook-form.com/)**: Form validation library
 - **[Zod](https://zod.dev/)**: TypeScript-first schema validation
 
@@ -34,7 +35,7 @@ This website is built for A&B School, providing information about the school's e
 ### Prerequisites
 
 - Node.js 18 or later
-- npm or yarn
+- pnpm or yarn
 - Supabase account (for database functionality)
 
 ### Installation
@@ -47,7 +48,7 @@ This website is built for A&B School, providing information about the school's e
 
 2. Install dependencies:
    ```bash
-   npm install
+   pnpm install
    # or
    yarn install
    ```
@@ -63,14 +64,21 @@ This website is built for A&B School, providing information about the school's e
    - Run the SQL setup script from `database/schema.sql` in the Supabase SQL editor
    - Create an admin user in the Supabase Authentication section
 
-5. Run the development server:
+5. Set up storage buckets:
    ```bash
-   npm run dev
+   pnpm run create-bucket        # Creates 'teachers' bucket
+   pnpm run create-news-bucket   # Creates 'news' bucket
+   pnpm run create-achievements-bucket # Creates 'achievements' bucket with folder structure
+   ```
+
+6. Run the development server:
+   ```bash
+   pnpm run dev
    # or
    yarn dev
    ```
 
-6. Open [http://localhost:3000](http://localhost:3000) in your browser.
+7. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Project Structure
 
@@ -78,6 +86,8 @@ This website is built for A&B School, providing information about the school's e
 AandB-School-Site/
 ├── database/            # Database schema and migrations
 ├── docker/              # Docker configuration files
+├── docs/                # Project documentation
+│   └── supabase-storage-guide.md  # Comprehensive storage implementation guide
 ├── locales/             # Translation files
 ├── public/              # Static assets
 ├── src/
@@ -92,6 +102,10 @@ AandB-School-Site/
 │   ├── context/         # React context providers
 │   ├── data/            # Static data and content
 │   ├── lib/             # Utility functions
+│   ├── scripts/         # Setup and utility scripts
+│   │   ├── create-bucket.js             # Creates teachers bucket
+│   │   ├── create-news-bucket.js        # Creates news bucket
+│   │   └── create-achievements-bucket.js # Creates achievements bucket
 │   ├── styles/          # Global styles
 │   └── types/           # TypeScript type definitions
 ├── .env.local.example   # Example environment variables
@@ -111,7 +125,7 @@ The application can be deployed to any hosting provider that supports Next.js ap
 ### Building for Production
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 ### Using Docker
@@ -133,6 +147,7 @@ Comprehensive documentation is available in the following files:
 - **[DOCUMENTATION.md](DOCUMENTATION.md)**: Main project documentation covering all aspects of the site
 - **[Authentication-Flow.md](Authentication-Flow.md)**: Detailed explanation of the authentication system
 - **[CODE-STRUCTURE.md](CODE-STRUCTURE.md)**: Code organization standards and patterns
+- **[docs/supabase-storage-guide.md](docs/supabase-storage-guide.md)**: Detailed guide on Supabase Storage implementation
 - **[docker/README.md](docker/README.md)**: Docker deployment configuration and options
 
 These documentation files cover:
@@ -141,6 +156,7 @@ These documentation files cover:
 - Database structure and security
 - Authentication flow and security
 - Internationalization implementation
+- Storage and file management
 - Development workflow
 - Deployment options
 - Troubleshooting and maintenance
@@ -152,6 +168,7 @@ The A&B School website implements several security measures:
 
 - **Authentication**: Secure admin access via Supabase Auth
 - **Database Security**: Row-level security policies in Supabase
+- **Storage Security**: Access control for uploaded files via Postgres RLS
 - **CSRF Protection**: Protection against cross-site request forgery
 - **Input Validation**: All user inputs validated with Zod
 - **Content Security**: Sanitization of user-generated content
@@ -165,13 +182,13 @@ The website can be tested using:
 
 ```bash
 # Run linting
-npm run lint
+pnpm run lint
 
 # Run type checking
-npm run type-check
+pnpm run type-check
 
 # Start development server for manual testing
-npm run dev
+pnpm run dev
 ```
 
 ## License
@@ -192,6 +209,7 @@ The A&B School website includes a complete admin dashboard for managing content:
 - **Admin Authentication**: Secure login for administrators
 - **News Management**: Create, edit, delete, and publish/unpublish news articles
 - **Achievements Management**: Track and showcase student and school achievements
+- **File Storage**: Upload and manage images and documents with Supabase Storage
 - **Bilingual Content**: All content can be managed in both English and Bulgarian
 - **Dynamic Content**: Public-facing pages fetch content from the database
 - **Fallback Support**: Static data is used as a fallback for backward compatibility
@@ -204,8 +222,30 @@ The A&B School website includes a complete admin dashboard for managing content:
    ```
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
    ```
 4. Create an admin user in Supabase Authentication
+5. Set up storage buckets using the provided scripts:
+   ```bash
+   pnpm run create-bucket
+   pnpm run create-news-bucket
+   pnpm run create-achievements-bucket
+   ```
+
+### Storage Architecture
+
+The website uses a structured approach to file storage:
+
+- **`teachers` bucket**: Stores teacher profile images
+- **`news` bucket**: Stores news article images
+- **`achievements` bucket**: Stores achievement-related files, organized in folders:
+  - `certificates/`: For diplomas and certificates
+  - `awards/`: For award images
+  - `competitions/`: For competition-related files
+  - `academic/`: For academic achievement documents
+- **`public1` bucket**: Fallback bucket for general files
+
+For detailed information on the storage implementation, see [docs/supabase-storage-guide.md](docs/supabase-storage-guide.md).
 
 ### Seeding the Database
 
@@ -213,7 +253,7 @@ To populate your database with sample data:
 
 1. Install dependencies:
    ```bash
-   npm install @supabase/supabase-js
+   pnpm install @supabase/supabase-js
    ```
 
 2. Set environment variables for the seed script:
@@ -242,10 +282,11 @@ If you encounter issues during setup or deployment, consult the following resour
 
 1. Check the troubleshooting sections in [DOCUMENTATION.md](DOCUMENTATION.md)
 2. For authentication issues, see [Authentication-Flow.md](Authentication-Flow.md)
-3. For Docker-related problems, refer to [docker/README.md](docker/README.md)
+3. For storage issues, refer to [docs/supabase-storage-guide.md](docs/supabase-storage-guide.md)
+4. For Docker-related problems, refer to [docker/README.md](docker/README.md)
 
 Common issues and solutions:
 - **Database connection problems**: Verify Supabase credentials and network access
 - **Authentication issues**: Check browser console for specific error messages
-- **Build errors**: Ensure all dependencies are installed and compatible
-- **Docker deployment**: Check container logs with `docker-compose logs` 
+- **Storage issues**: Ensure proper bucket creation and file permissions
+- **Build errors**: Ensure all dependencies are installed and compatible 

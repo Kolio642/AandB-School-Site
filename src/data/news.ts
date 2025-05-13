@@ -134,21 +134,21 @@ export const newsItems: NewsItem[] = [
 /**
  * Converts a Supabase news item to our application's NewsItem format
  */
-function mapSupabaseNewsToNewsItem(item: SupabaseNewsItem): NewsItem {
+function mapSupabaseNewsToNewsItem(item: any): NewsItem {
   return {
     id: item.id,
-    date: typeof item.published === 'string' ? item.published : item.created_at,
-    image: item.image_url || '/images/hero-image.jpg', // Ensure fallback image
+    date: item.date || item.created_at,
+    image: item.image_url || item.image || '/images/hero-image.jpg', // Ensure fallback image
     translations: {
       en: {
-        title: item.title || '',
-        summary: item.title || '',  // Using title as fallback summary
-        content: item.content || ''
+        title: item.title_en || '',
+        summary: item.summary_en || '',
+        content: item.content_en || ''
       },
       bg: {
-        title: item.title || '',
-        summary: item.title || '',  // Using title as fallback summary
-        content: item.content || ''
+        title: item.title_bg || '',
+        summary: item.summary_bg || '',
+        content: item.content_bg || ''
       }
     }
   };

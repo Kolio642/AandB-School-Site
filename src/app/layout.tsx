@@ -3,6 +3,7 @@ import { locales } from '@/lib/i18n';
 import type { Metadata } from 'next';
 import { Inter, Montserrat, JetBrains_Mono } from 'next/font/google';
 import { AuthProvider } from '@/context/auth-context';
+import { Toaster } from '@/components/ui/toaster';
 
 // Load and configure fonts
 const inter = Inter({
@@ -95,6 +96,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <body className={`${inter.variable} ${montserrat.variable} ${jetbrainsMono.variable} font-sans min-h-screen flex flex-col`}>
           <AuthProvider>
             {children}
+            <Toaster />
           </AuthProvider>
         </body>
       </html>

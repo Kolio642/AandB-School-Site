@@ -11,7 +11,7 @@ There are two ways to create the required 'teachers' bucket:
 Run the following command in the project root:
 
 ```bash
-npm run create-bucket
+pnpm run create-bucket
 ```
 
 This script requires the following environment variables to be set:

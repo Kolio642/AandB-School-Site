@@ -69,14 +69,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     console.log('Signing out user...');
     try {
-      const { error } = await supabase.auth.signOut();
+      // First clear all related cookies
+      document.cookie = 'sb-refresh-token=; path=/; max-age=0; samesite=lax';
+      document.cookie = 'sb-access-token=; path=/; max-age=0; samesite=lax';
+      document.cookie = 'sb-auth-token=; path=/; max-age=0; samesite=lax';
+      document.cookie = 'dashboard_visited=; path=/; max-age=0; samesite=lax';
+      document.cookie = 'auth_success=; path=/; max-age=0; samesite=lax';
+      
+      // Call Supabase signOut API
+      const { error } = await supabase.auth.signOut({
+        scope: 'global' // Sign out from all tabs/devices
+      });
+      
       if (error) {
-        console.error('Error signing out:', error);
-      } else {
-        console.log('Sign out successful');
+        console.error('Error signing out from Supabase:', error);
+        throw error;
       }
+      
+      // Force update local state even if we got an error
+      setSession(null);
+      setUser(null);
+      
+      console.log('Sign out successful');
     } catch (err) {
       console.error('Unexpected error during sign out:', err);
+      
+      // Force state update even on error
+      setSession(null);
+      setUser(null);
+      
+      throw err;
     }
   };
 

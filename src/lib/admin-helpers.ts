@@ -5,28 +5,39 @@ import { supabase } from './supabase';
  * @param file The file to upload
  * @param folder The folder to store the file in (e.g., 'teachers', 'news')
  * @param existingImageUrl URL of the existing image (for updates)
- * @returns The URL of the uploaded image
+ * @returns The URL of the uploaded image or undefined if upload fails
  */
 export async function uploadImage(
   file: File | null, 
   folder: string = 'general',
-  existingImageUrl: string | null = null
-): Promise<string | null> {
-  if (!file) return existingImageUrl;
+  existingImageUrl: string | undefined = undefined
+): Promise<string | undefined> {
+  if (!file) {
+    console.log('No file provided, returning existing URL:', existingImageUrl);
+    return existingImageUrl;
+  }
   
   try {
-    console.log(`Uploading image to ${folder} folder`);
+    console.log(`Uploading image to ${folder} folder. File: ${file.name}, Size: ${file.size} bytes`);
     
     // Create a safe filename
     const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+    console.log(`Generated safe filename: ${fileName}`);
+    
+    // Check if user is authenticated before attempting upload
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.error('User not authenticated for upload');
+      throw new Error('Authentication required for uploading files');
+    }
     
     // Try to upload to the specific bucket first (teachers, news, etc.)
-    // If that fails, fall back to the public1 bucket
     let uploadResult;
     let bucketName = folder; // Try using the folder name as the bucket name first
     let filePath = fileName; // For specific buckets, don't add folder to path (prevents "teachers/teachers/file.jpg")
     
     try {
+      console.log(`Attempting upload to ${bucketName} bucket with path ${filePath}`);
       uploadResult = await supabase.storage
         .from(bucketName)
         .upload(filePath, file, {
@@ -35,17 +46,20 @@ export async function uploadImage(
         });
         
       if (uploadResult.error) {
-        console.warn(`Could not upload to ${bucketName} bucket, falling back to public1 bucket`);
+        console.error(`Could not upload to ${bucketName} bucket:`, uploadResult.error);
         throw uploadResult.error; // This will trigger the catch block below
       }
+      
+      console.log(`Successfully uploaded to ${bucketName} bucket`);
     } catch (bucketError) {
       // If specific bucket fails, try the public1 bucket instead
-      console.log('Falling back to public1 bucket');
+      console.log('Failed to upload to specific bucket, falling back to public1 bucket');
       bucketName = 'public1';
       
       // For the fallback bucket, use the folder name in the path for organization
       filePath = `${folder}/${fileName}`;
       
+      console.log(`Attempting fallback upload to ${bucketName} bucket with path ${filePath}`);
       uploadResult = await supabase.storage
         .from(bucketName)
         .upload(filePath, file, {
@@ -54,17 +68,20 @@ export async function uploadImage(
         });
         
       if (uploadResult.error) {
-        console.error('Upload error on public1 bucket:', uploadResult.error.message);
+        console.error('Upload error on public1 bucket:', uploadResult.error);
         return existingImageUrl;
       }
+      
+      console.log(`Successfully uploaded to fallback bucket ${bucketName}`);
     }
     
     // Get the public URL from the successful bucket
+    console.log(`Getting public URL for ${bucketName}/${filePath}`);
     const { data: urlData } = supabase.storage
       .from(bucketName)
       .getPublicUrl(filePath); // Always use the same filePath variable that was used for upload
     
-    console.log('Image uploaded successfully:', urlData.publicUrl);
+    console.log('Image uploaded successfully, public URL:', urlData.publicUrl);
     return urlData.publicUrl;
   } catch (error) {
     console.error('Error uploading image:', error);

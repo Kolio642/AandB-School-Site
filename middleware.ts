@@ -75,6 +75,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
+  // Check for localized admin routes and redirect to non-localized version
+  if (hasLocalePrefix && segments.length > 1 && segments[1] === 'admin') {
+    // Extract the remaining path after locale/admin
+    const adminPath = segments.slice(2).join('/');
+    // Create the non-localized admin URL
+    const nonLocalizedAdminUrl = `/admin${adminPath ? `/${adminPath}` : ''}`;
+    
+    return NextResponse.redirect(new URL(nonLocalizedAdminUrl, request.url));
+  }
+  
   // For signout, don't redirect
   if (pathname === '/signout') {
     return NextResponse.next();

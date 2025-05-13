@@ -7,9 +7,9 @@ AandB-School-Site/
 ├── public/              # Static assets
 ├── src/                 # Source code
 │   ├── app/             # Next.js App Router
-│   │   ├── admin/       # Admin dashboard and management
+│   │   ├── admin/       # Admin dashboard (non-localized)
 │   │   ├── api/         # API routes
-│   │   └── [locale]/    # Localized routes
+│   │   └── [locale]/    # Localized routes (public routes only)
 │   ├── components/      # Reusable UI components
 │   │   ├── admin/       # Admin-specific components
 │   │   ├── sections/    # Page sections
@@ -294,7 +294,7 @@ AandB-School-Site/
 
 ## Deployment Strategy
 
-- Use standard build process: `npm run build`
+- Use standard build process: `pnpm run build`
 - Environment-specific configuration through environment variables
 - Implement a CI/CD pipeline for automated testing and deployment 
 - Consider using GitHub Actions for CI/CD:
@@ -316,9 +316,9 @@ AandB-School-Site/
           with:
             node-version: '18'
         - name: Install dependencies
-          run: npm ci
+          run: pnpm install --frozen-lockfile
         - name: Build
-          run: npm run build
+          run: pnpm run build
         - name: Deploy
           # Deployment steps
   ``` 

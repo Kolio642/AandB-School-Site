@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "create-bucket": "node src/scripts/create-bucket.js"
+    "create-bucket": "node src/scripts/create-bucket.js",
+    "create-news-bucket": "node src/scripts/create-news-bucket.js",
+    "create-achievements-bucket": "node src/scripts/create-achievements-bucket.js",
+    "setup-storage": "node src/scripts/setup-storage.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -21,6 +24,8 @@
     "@radix-ui/react-toast": "^1.2.10",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.49.4",
+    "@types/uuid": "^10.0.0",
+    "aws-sdk": "^2.1692.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -35,6 +40,7 @@
     "react-quill": "^2.0.0",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
     "zod": "^3.24.3"
   },
   "devDependencies": {
