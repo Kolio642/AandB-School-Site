@@ -1,10 +1,10 @@
 import { Locale, locales } from '@/lib/i18n';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
 import { getAllNews } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
+import ImageWithFallback from '@/components/ui/image-with-fallback';
 
 interface NewsPageProps {
   params: {
@@ -49,21 +49,31 @@ export default async function NewsPage({ params }: NewsPageProps) {
         
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {allNews.map((item) => {
-            const translation = item.translations[locale];
-            const formattedDate = formatDate(new Date(item.date), locale === 'en' ? 'en-US' : 'bg-BG');
+            // Skip rendering if the item is undefined
+            if (!item) return null;
+            
+            // Make sure translations exist and have a fallback if not
+            const translation = item.translations?.[locale] || {
+              title: locale === 'en' ? 'Untitled' : 'Без заглавие',
+              summary: locale === 'en' ? 'No summary available' : 'Няма налично резюме',
+              content: ''
+            };
+            
+            // Format date with a fallback
+            const formattedDate = item.date 
+              ? formatDate(new Date(item.date), locale === 'en' ? 'en-US' : 'bg-BG')
+              : locale === 'en' ? 'Unknown date' : 'Неизвестна дата';
             
             return (
               <div key={item.id} className="flex flex-col overflow-hidden rounded-lg shadow-md bg-card">
-                {item.image && (
-                  <div className="relative h-48 w-full overflow-hidden">
-                    <Image 
-                      src={item.image}
-                      alt={translation.title}
-                      fill
-                      className="object-cover transition-transform hover:scale-105"
-                    />
-                  </div>
-                )}
+                <div className="relative h-48 w-full" style={{position: 'relative'}}>
+                  <ImageWithFallback 
+                    src={item.image || '/placeholder.jpg'}
+                    alt={translation.title || ''}
+                    fill
+                    className="object-cover transition-transform hover:scale-105"
+                  />
+                </div>
                 <div className="flex flex-col gap-2 p-6">
                   <p className="text-sm text-muted-foreground">{formattedDate}</p>
                   <h2 className="text-xl font-semibold line-clamp-2">{translation.title}</h2>

@@ -23,10 +23,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   // Redirect to login if not authenticated (except on login page)
   useEffect(() => {
-    console.log('Admin layout auth check:', { user: !!user, authLoading, pathname });
-    
     if (!authLoading && !user && pathname !== '/admin' && !pathname.startsWith('/admin/login')) {
-      console.log('No authenticated user detected in layout, redirecting to login');
       window.location.href = '/admin';
     }
   }, [pathname, user, authLoading]);
@@ -34,7 +31,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const handleSignOut = async () => {
     try {
       setIsLoading(true);
-      console.log('Signing out from admin layout...');
       
       // Clear cookies first
       document.cookie = 'sb-refresh-token=; path=/; max-age=0; samesite=lax';

@@ -40,8 +40,9 @@ export function getLocalePartsFrom(path: string): {
 } {
   try {
     const pathnameParts = path.split('/').filter(Boolean);
-    const isLocale = pathnameParts[0] && locales.includes(pathnameParts[0] as Locale);
-    const locale = isLocale ? (pathnameParts[0] as Locale) : defaultLocale;
+    const firstPart = pathnameParts[0]?.toLowerCase();
+    const isLocale = firstPart && locales.includes(firstPart as Locale);
+    const locale = isLocale ? (firstPart as Locale) : defaultLocale;
     const pathname = isLocale ? `/${pathnameParts.slice(1).join('/')}` : path;
 
     return {
@@ -95,7 +96,9 @@ export function redirectToLocale(locale: Locale): void {
  * @returns True if the locale is supported, false otherwise
  */
 export function isValidLocale(locale: string): locale is Locale {
-  return locales.includes(locale as Locale);
+  // Handle case-insensitive comparison
+  const normalizedLocale = locale.toLowerCase();
+  return locales.includes(normalizedLocale as Locale);
 }
 
 /**
@@ -106,12 +109,14 @@ export function isValidLocale(locale: string): locale is Locale {
  */
 export function getTranslations(locale: Locale = defaultLocale): Translation {
   try {
-    if (!isValidLocale(locale)) {
+    // Handle case insensitivity
+    const normalizedLocale = locale.toLowerCase() as Locale;
+    if (!isValidLocale(normalizedLocale)) {
       console.warn(`Requested translations for unsupported locale: ${locale}. Falling back to ${defaultLocale}.`);
       return translations[defaultLocale];
     }
     
-    return translations[locale];
+    return translations[normalizedLocale];
   } catch (error) {
     console.error(`Error getting translations for locale ${locale}:`, error);
     return translations[defaultLocale];

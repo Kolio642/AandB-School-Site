@@ -3,18 +3,19 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { NewsForm } from '../../components/news-form';
+import { AchievementForm } from '../../components/achievement-form';
 import { toast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Achievement } from '@/lib/database';
 import { use } from 'react';
 
 interface PageParams {
   id: string;
 }
 
-export default function EditNewsPage({ params }: { params: PageParams }) {
+export default function EditAchievementPage({ params }: { params: PageParams }) {
   const router = useRouter();
-  const [newsItem, setNewsItem] = useState<any>(null);
+  const [achievement, setAchievement] = useState<Achievement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,25 +23,25 @@ export default function EditNewsPage({ params }: { params: PageParams }) {
   const unwrappedParams = use(params as unknown as Promise<PageParams>);
   const id = unwrappedParams.id;
 
-  // Fetch the news item data
+  // Fetch the achievement data
   useEffect(() => {
-    async function fetchNewsItem() {
+    async function fetchAchievement() {
       try {
         setIsLoading(true);
         const { data, error } = await supabase
-          .from('news')
+          .from('achievements')
           .select('*')
           .eq('id', id)
           .single();
 
         if (error) throw error;
-        setNewsItem(data);
+        setAchievement(data);
       } catch (err: any) {
-        console.error('Error fetching news item:', err);
-        setError(err.message || 'Failed to load news item');
+        console.error('Error fetching achievement:', err);
+        setError(err.message || 'Failed to load achievement');
         toast({
           title: 'Error',
-          description: err.message || 'Failed to load news item',
+          description: err.message || 'Failed to load achievement',
           variant: 'destructive',
         });
       } finally {
@@ -48,23 +49,23 @@ export default function EditNewsPage({ params }: { params: PageParams }) {
       }
     }
 
-    fetchNewsItem();
+    fetchAchievement();
   }, [id]);
 
-  async function handleUpdateNews(data: any) {
+  async function handleUpdateAchievement(data: any) {
     try {
       // Prepare the data - remove imageFile field which is used only for the front-end
-      const { imageFile, ...newsData } = data;
+      const { imageFile, ...achievementData } = data;
       
       // Add updated_at timestamp
       const updateData = {
-        ...newsData,
+        ...achievementData,
         updated_at: new Date().toISOString(),
       };
       
-      // Update the news item
+      // Update the achievement item
       const { error } = await supabase
-        .from('news')
+        .from('achievements')
         .update(updateData)
         .eq('id', id);
         
@@ -73,19 +74,19 @@ export default function EditNewsPage({ params }: { params: PageParams }) {
       // Show success message
       toast({
         title: 'Success',
-        description: 'News item updated successfully',
+        description: 'Achievement updated successfully',
       });
       
-      // Redirect to news list
-      router.push('/admin/news');
+      // Redirect to achievements list
+      router.push('/admin/achievements');
       
       // Force a refresh to show the updated data
       router.refresh();
     } catch (error: any) {
-      console.error('Error updating news item:', error);
+      console.error('Error updating achievement:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update news item',
+        description: error.message || 'Failed to update achievement',
         variant: 'destructive',
       });
       throw error; // Re-throw to be handled by the form
@@ -107,17 +108,17 @@ export default function EditNewsPage({ params }: { params: PageParams }) {
     );
   }
 
-  if (error || !newsItem) {
+  if (error || !achievement) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Error Loading News Item</h2>
-          <p className="text-muted-foreground mb-4">{error || 'News item not found'}</p>
+          <h2 className="text-xl font-semibold mb-2">Error Loading Achievement</h2>
+          <p className="text-muted-foreground mb-4">{error || 'Achievement not found'}</p>
           <button 
-            onClick={() => router.push('/admin/news')}
+            onClick={() => router.push('/admin/achievements')}
             className="text-primary hover:underline"
           >
-            Return to News List
+            Return to Achievements List
           </button>
         </div>
       </div>
@@ -127,15 +128,15 @@ export default function EditNewsPage({ params }: { params: PageParams }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Edit News Item</h1>
-        <p className="text-muted-foreground">Make changes to the news item</p>
+        <h1 className="text-2xl font-bold">Edit Achievement</h1>
+        <p className="text-muted-foreground">Make changes to the achievement</p>
       </div>
       
       <div className="border rounded-lg p-6 bg-card">
-        <NewsForm 
-          initialData={newsItem} 
-          newsId={id} 
-          onSubmit={handleUpdateNews} 
+        <AchievementForm 
+          initialData={achievement} 
+          achievementId={id} 
+          onSubmit={handleUpdateAchievement} 
         />
       </div>
     </div>

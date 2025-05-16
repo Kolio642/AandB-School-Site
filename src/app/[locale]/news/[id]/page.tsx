@@ -1,12 +1,12 @@
 import { Locale, locales } from '@/lib/i18n';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
 import { getNewsById, getAllNews } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { notFound } from 'next/navigation';
+import ImageWithFallback from '@/components/ui/image-with-fallback';
 
 interface NewsDetailPageProps {
   params: {
@@ -24,10 +24,12 @@ export async function generateStaticParams() {
   
   for (const locale of locales) {
     for (const newsItem of news) {
-      params.push({
-        locale,
-        id: newsItem.id
-      });
+      if (newsItem) {
+        params.push({
+          locale,
+          id: newsItem.id
+        });
+      }
     }
   }
   
@@ -44,7 +46,12 @@ export async function generateMetadata({ params }: NewsDetailPageProps): Promise
     };
   }
   
-  const translation = newsItem.translations[locale];
+  // Make sure translation exists, provide fallbacks if not
+  const translation = newsItem.translations?.[locale] || {
+    title: locale === 'en' ? 'Untitled' : 'Без заглавие',
+    summary: locale === 'en' ? 'No summary available' : 'Няма налично резюме',
+    content: ''
+  };
   
   return {
     title: translation.title,
@@ -60,8 +67,17 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
     notFound();
   }
   
-  const translation = newsItem.translations[locale];
-  const formattedDate = formatDate(new Date(newsItem.date), locale === 'en' ? 'en-US' : 'bg-BG');
+  // Make sure translation exists, provide fallbacks if not
+  const translation = newsItem.translations?.[locale] || {
+    title: locale === 'en' ? 'Untitled' : 'Без заглавие',
+    summary: locale === 'en' ? 'No summary available' : 'Няма налично резюме',
+    content: ''
+  };
+  
+  // Format date with a fallback
+  const formattedDate = newsItem.date 
+    ? formatDate(new Date(newsItem.date), locale === 'en' ? 'en-US' : 'bg-BG')
+    : locale === 'en' ? 'Unknown date' : 'Неизвестна дата';
   
   return (
     <main className="py-10">
@@ -83,10 +99,10 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
           </p>
           
           {newsItem.image && (
-            <div className="relative h-[300px] md:h-[400px] mb-8 rounded-lg overflow-hidden">
-              <Image 
+            <div className="relative h-[300px] md:h-[400px] mb-8 rounded-lg overflow-hidden" style={{position: 'relative'}}>
+              <ImageWithFallback 
                 src={newsItem.image}
-                alt={translation.title}
+                alt={translation.title || ''}
                 fill
                 className="object-cover"
               />

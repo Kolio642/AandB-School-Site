@@ -110,6 +110,12 @@ export async function deleteImage(url: string): Promise<boolean> {
   if (!url) return false;
   
   try {
+    // Check if it's an external URL (not from our Supabase storage)
+    if (!url.includes('supabase.co/storage')) {
+      console.log('External URL detected, skipping deletion:', url);
+      return true; // Return true since there's no need to delete external URLs
+    }
+    
     const bucketName = extractBucketFromUrl(url);
     const fileName = extractFilenameFromUrl(url);
     

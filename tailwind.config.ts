@@ -1,11 +1,9 @@
 import type { Config } from 'tailwindcss';
 
-const config: Config = {
+const config = {
   darkMode: ['class'],
   content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     container: {
@@ -24,8 +22,10 @@ const config: Config = {
       '2xl': '1536px',
     },
     extend: {
+      borderColor: {
+        DEFAULT: 'hsl(var(--border))',
+      },
       colors: {
-        border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',

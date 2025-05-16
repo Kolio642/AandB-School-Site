@@ -47,7 +47,7 @@ export function NewsForm({ initialData, newsId, onSubmit }: NewsFormProps) {
   const [activeTab, setActiveTab] = useState('english');
 
   const { register, handleSubmit, watch, setValue, reset, formState: { errors, isDirty } } = useForm<NewsFormValues>({
-    resolver: zodResolver(newsSchema),
+    resolver: zodResolver(newsSchema) as any,
     defaultValues: initialData || {
       title_en: '',
       title_bg: '',

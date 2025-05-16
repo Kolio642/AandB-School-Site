@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
+import { PlusCircle, Trophy, Users, BookOpen } from 'lucide-react';
 
 interface DashboardStats {
   newsCount: number;
@@ -76,13 +78,17 @@ export default function AdminDashboardPage() {
     }
   }
 
+  const navigateTo = (path: string) => {
+    router.push(path);
+  };
+
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 p-6">
         <Skeleton className="h-12 w-64" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-36 w-full" />
+            <Skeleton key={i} className="h-48 w-full rounded-xl" />
           ))}
         </div>
       </div>
@@ -90,74 +96,153 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-      <p className="text-muted-foreground">
-        Welcome to the A&B School admin panel. Here you can manage news, achievements, teachers, and courses.
-      </p>
+    <div className="space-y-8 p-6 max-w-7xl mx-auto">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+        <p className="text-muted-foreground mt-2">
+          Welcome to the A&B School admin panel. Manage your school's content easily.
+        </p>
+      </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total News</CardTitle>
+      {/* Stats Cards */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-l-4 border-l-blue-500 shadow-md hover:shadow-lg transition-all">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total News</CardTitle>
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <PlusCircle className="h-4 w-4 text-blue-500" />
+            </div>
           </CardHeader>
           <CardContent>
             {isLoadingStats ? (
-              <Skeleton className="h-7 w-12" />
+              <Skeleton className="h-8 w-16" />
             ) : (
-              <div className="text-2xl font-bold">{stats?.newsCount || 0}</div>
+              <>
+                <div className="text-3xl font-bold text-blue-700">{stats?.newsCount || 0}</div>
+                <div className="flex justify-between items-center mt-4">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-xs"
+                    onClick={() => navigateTo('/admin/news')}
+                  >
+                    View All
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    className="text-xs bg-blue-500 hover:bg-blue-600"
+                    onClick={() => navigateTo('/admin/news/new')}
+                  >
+                    Add New
+                  </Button>
+                </div>
+              </>
             )}
-            <p className="text-xs text-muted-foreground mt-1">
-              <a href="/admin/news" className="text-primary hover:underline">Manage News →</a>
-            </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Achievements</CardTitle>
+        <Card className="border-l-4 border-l-amber-500 shadow-md hover:shadow-lg transition-all">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Achievements</CardTitle>
+            <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+              <Trophy className="h-4 w-4 text-amber-500" />
+            </div>
           </CardHeader>
           <CardContent>
             {isLoadingStats ? (
-              <Skeleton className="h-7 w-12" />
+              <Skeleton className="h-8 w-16" />
             ) : (
-              <div className="text-2xl font-bold">{stats?.achievementsCount || 0}</div>
+              <>
+                <div className="text-3xl font-bold text-amber-700">{stats?.achievementsCount || 0}</div>
+                <div className="flex justify-between items-center mt-4">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-xs"
+                    onClick={() => navigateTo('/admin/achievements')}
+                  >
+                    View All
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    className="text-xs bg-amber-500 hover:bg-amber-600"
+                    onClick={() => navigateTo('/admin/achievements/new')}
+                  >
+                    Add New
+                  </Button>
+                </div>
+              </>
             )}
-            <p className="text-xs text-muted-foreground mt-1">
-              <a href="/admin/achievements" className="text-primary hover:underline">Manage Achievements →</a>
-            </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Teachers</CardTitle>
+        <Card className="border-l-4 border-l-green-500 shadow-md hover:shadow-lg transition-all">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Teachers</CardTitle>
+            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+              <Users className="h-4 w-4 text-green-500" />
+            </div>
           </CardHeader>
           <CardContent>
             {isLoadingStats ? (
-              <Skeleton className="h-7 w-12" />
+              <Skeleton className="h-8 w-16" />
             ) : (
-              <div className="text-2xl font-bold">{stats?.teachersCount || 0}</div>
+              <>
+                <div className="text-3xl font-bold text-green-700">{stats?.teachersCount || 0}</div>
+                <div className="flex justify-between items-center mt-4">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-xs"
+                    onClick={() => navigateTo('/admin/teachers')}
+                  >
+                    View All
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    className="text-xs bg-green-500 hover:bg-green-600"
+                    onClick={() => navigateTo('/admin/teachers/new')}
+                  >
+                    Add New
+                  </Button>
+                </div>
+              </>
             )}
-            <p className="text-xs text-muted-foreground mt-1">
-              <a href="/admin/teachers" className="text-primary hover:underline">Manage Teachers →</a>
-            </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
+        <Card className="border-l-4 border-l-purple-500 shadow-md hover:shadow-lg transition-all">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Courses</CardTitle>
+            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+              <BookOpen className="h-4 w-4 text-purple-500" />
+            </div>
           </CardHeader>
           <CardContent>
             {isLoadingStats ? (
-              <Skeleton className="h-7 w-12" />
+              <Skeleton className="h-8 w-16" />
             ) : (
-              <div className="text-2xl font-bold">{stats?.coursesCount || 0}</div>
+              <>
+                <div className="text-3xl font-bold text-purple-700">{stats?.coursesCount || 0}</div>
+                <div className="flex justify-between items-center mt-4">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-xs"
+                    onClick={() => navigateTo('/admin/courses')}
+                  >
+                    View All
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    className="text-xs bg-purple-500 hover:bg-purple-600"
+                    onClick={() => navigateTo('/admin/courses/new')}
+                  >
+                    Add New
+                  </Button>
+                </div>
+              </>
             )}
-            <p className="text-xs text-muted-foreground mt-1">
-              <a href="/admin/courses" className="text-primary hover:underline">Manage Courses →</a>
-            </p>
           </CardContent>
         </Card>
       </div>

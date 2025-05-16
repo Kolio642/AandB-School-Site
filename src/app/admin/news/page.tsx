@@ -250,8 +250,8 @@ export default function NewsManagementPage() {
                         <TableCell>{formatDate(item.date)}</TableCell>
                         <TableCell>
                           <Badge 
-                            variant={item.published ? "default" : "outline"}
-                            className="cursor-pointer"
+                            variant={item.published ? "success" : "secondary"}
+                            className="cursor-pointer hover:opacity-80"
                             onClick={() => togglePublishStatus(item.id, item.published)}
                           >
                             {item.published ? "Published" : "Draft"}
