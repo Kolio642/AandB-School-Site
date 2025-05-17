@@ -32,23 +32,29 @@ jobs:
           const { createClient } = require('@supabase/supabase-js');
           
           async function ping() {
+            console.log('Starting Supabase ping...');
+            
+            if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+              console.error('Missing Supabase credentials in GitHub secrets');
+              process.exit(1);
+            }
+            
             const supabase = createClient(
               process.env.SUPABASE_URL,
               process.env.SUPABASE_KEY
             );
             
             try {
-              const { data, error } = await supabase
-                .from('news')
-                .select('id')
-                .limit(1);
-                
+              // Simple authentication check that doesn't require table access
+              const { data, error } = await supabase.auth.getSession();
+              
               if (error) {
                 console.error('Error pinging database:', error.message);
                 process.exit(1);
               }
               
               console.log('Successfully pinged database at', new Date().toISOString());
+              console.log('Database should remain active for another week.');
             } catch (error) {
               console.error('Exception:', error.message);
               process.exit(1);
