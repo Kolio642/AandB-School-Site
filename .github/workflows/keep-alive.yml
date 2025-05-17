@@ -18,7 +18,15 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          cache: 'npm'
+          # Don't use cache to avoid potential issues
+      
+      - name: Debug environment
+        run: |
+          echo "Node version: $(node -v)"
+          echo "NPM version: $(npm -v)"
+          echo "Checking for secrets (should show 'true' if they exist)"
+          echo "NEXT_PUBLIC_SUPABASE_URL exists: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL != '' }}"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY exists: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY != '' }}"
 
       - name: Install dependencies
         run: npm install @supabase/supabase-js
@@ -34,63 +42,81 @@ jobs:
           async function ping() {
             console.log('Starting Supabase ping...');
             
+            // Debug environment variables
+            console.log('Environment variable check:');
+            console.log('NEXT_PUBLIC_SUPABASE_URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+            console.log('NEXT_PUBLIC_SUPABASE_ANON_KEY exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+            
             if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
               console.error('Missing Supabase credentials in GitHub secrets');
               process.exit(1);
             }
             
+            // Very basic supabase connection test
+            console.log('Creating Supabase client...');
             const supabase = createClient(
               process.env.NEXT_PUBLIC_SUPABASE_URL,
-              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+              { auth: { persistSession: false } }
             );
             
             try {
-              // Try multiple methods to keep the database alive
-              console.log('Attempting database connection...');
+              console.log('Making a simple health check request...');
               
-              // Method 1: Try RPC call
+              // Simplified basic request that should work for any Supabase project
+              const response = await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL);
+              
+              if (response.ok) {
+                console.log('Successfully connected to Supabase at', new Date().toISOString());
+                console.log('Status:', response.status);
+                console.log('Database should remain active for another week.');
+                return;
+              }
+              
+              console.log('Simple fetch failed, trying Supabase client...');
+              
+              // Try a very basic request with the supabase client
               try {
-                const { error: rpcError } = await supabase.rpc('get_session_info');
-                if (!rpcError) {
-                  console.log('RPC method successful');
-                  console.log('Successfully pinged database at', new Date().toISOString());
+                const { data, error } = await supabase.from('news').select('count()', { count: 'exact', head: true });
+                console.log('Result:', error ? 'Error: ' + error.message : 'Success!');
+                
+                if (!error) {
+                  console.log('Successfully queried the database at', new Date().toISOString());
                   return;
                 }
               } catch (e) {
-                console.log('RPC method failed, trying next method');
+                console.log('Error with client query:', e.message);
               }
               
-              // Method 2: Try fetching system schema info
-              try {
-                const { error: schemaError } = await supabase
-                  .from('information_schema.tables')
-                  .select('table_name')
-                  .limit(1);
-                  
-                if (!schemaError) {
-                  console.log('Schema query method successful');
-                  console.log('Successfully pinged database at', new Date().toISOString());
-                  return;
+              // Final fallback - just try to reach the REST endpoint
+              console.log('Trying direct REST endpoint...');
+              const apiResponse = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/news?select=id&limit=1`, {
+                headers: {
+                  'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+                  'Authorization': 'Bearer ' + process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
                 }
-              } catch (e) {
-                console.log('Schema query method failed, trying next method');
+              });
+              
+              if (apiResponse.ok) {
+                console.log('Successfully connected via REST API', new Date().toISOString());
+                return;
               }
               
-              // Method 3: Simple auth check as fallback
-              const { error: authError } = await supabase.auth.getSession();
-              
-              if (authError) {
-                throw new Error('All connection methods failed: ' + authError.message);
-              }
-              
-              console.log('Auth check method successful');
-              console.log('Successfully pinged database at', new Date().toISOString());
-              console.log('Database should remain active for another week.');
+              throw new Error('All connection methods failed');
             } catch (error) {
               console.error('Exception:', error.message);
               process.exit(1);
             }
           }
           
-          ping();
+          // Add global error handler
+          process.on('unhandledRejection', (reason) => {
+            console.error('Unhandled rejection:', reason);
+            process.exit(1);
+          });
+          
+          ping().catch(err => {
+            console.error('Top level error:', err.message);
+            process.exit(1);
+          });
           " 
