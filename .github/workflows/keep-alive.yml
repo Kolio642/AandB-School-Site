@@ -25,8 +25,8 @@ jobs:
 
       - name: Ping Supabase database
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: |
           node -e "
           const { createClient } = require('@supabase/supabase-js');
@@ -34,25 +34,56 @@ jobs:
           async function ping() {
             console.log('Starting Supabase ping...');
             
-            if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+            if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
               console.error('Missing Supabase credentials in GitHub secrets');
               process.exit(1);
             }
             
             const supabase = createClient(
-              process.env.SUPABASE_URL,
-              process.env.SUPABASE_KEY
+              process.env.NEXT_PUBLIC_SUPABASE_URL,
+              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
             );
             
             try {
-              // Simple authentication check that doesn't require table access
-              const { data, error } = await supabase.auth.getSession();
+              // Try multiple methods to keep the database alive
+              console.log('Attempting database connection...');
               
-              if (error) {
-                console.error('Error pinging database:', error.message);
-                process.exit(1);
+              // Method 1: Try RPC call
+              try {
+                const { error: rpcError } = await supabase.rpc('get_session_info');
+                if (!rpcError) {
+                  console.log('RPC method successful');
+                  console.log('Successfully pinged database at', new Date().toISOString());
+                  return;
+                }
+              } catch (e) {
+                console.log('RPC method failed, trying next method');
               }
               
+              // Method 2: Try fetching system schema info
+              try {
+                const { error: schemaError } = await supabase
+                  .from('information_schema.tables')
+                  .select('table_name')
+                  .limit(1);
+                  
+                if (!schemaError) {
+                  console.log('Schema query method successful');
+                  console.log('Successfully pinged database at', new Date().toISOString());
+                  return;
+                }
+              } catch (e) {
+                console.log('Schema query method failed, trying next method');
+              }
+              
+              // Method 3: Simple auth check as fallback
+              const { error: authError } = await supabase.auth.getSession();
+              
+              if (authError) {
+                throw new Error('All connection methods failed: ' + authError.message);
+              }
+              
+              console.log('Auth check method successful');
               console.log('Successfully pinged database at', new Date().toISOString());
               console.log('Database should remain active for another week.');
             } catch (error) {
