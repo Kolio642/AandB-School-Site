@@ -10,7 +10,8 @@
     "create-bucket": "node src/scripts/create-bucket.js",
     "create-news-bucket": "node src/scripts/create-news-bucket.js",
     "create-achievements-bucket": "node src/scripts/create-achievements-bucket.js",
-    "setup-storage": "node src/scripts/setup-storage.js"
+    "setup-storage": "node src/scripts/setup-storage.js",
+    "keep-alive": "node src/scripts/keep-alive.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

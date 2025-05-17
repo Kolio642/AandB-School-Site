@@ -87,7 +87,7 @@ AandB-School-Site/
 ├── database/            # Database schema and migrations
 ├── docker/              # Docker configuration files
 ├── docs/                # Project documentation
-│   └── supabase-storage-guide.md  # Comprehensive storage implementation guide
+│   └── DOCUMENTATION.md # Comprehensive documentation
 ├── locales/             # Translation files
 ├── public/              # Static assets
 ├── src/
@@ -105,7 +105,8 @@ AandB-School-Site/
 │   ├── scripts/         # Setup and utility scripts
 │   │   ├── create-bucket.js             # Creates teachers bucket
 │   │   ├── create-news-bucket.js        # Creates news bucket
-│   │   └── create-achievements-bucket.js # Creates achievements bucket
+│   │   ├── create-achievements-bucket.js # Creates achievements bucket
+│   │   └── keep-alive.js                # Script to keep Supabase database alive
 │   ├── styles/          # Global styles
 │   └── types/           # TypeScript type definitions
 ├── .env.local.example   # Example environment variables
@@ -117,6 +118,36 @@ AandB-School-Site/
 ├── tailwind.config.ts
 └── tsconfig.json
 ```
+
+## Code Style Guidelines
+
+### File Naming
+
+- Use kebab-case for file names (e.g., `header-component.tsx`)
+- Use PascalCase for component files (e.g., `Button.tsx`)
+- Use camelCase for utility files (e.g., `formatDate.ts`)
+
+### Component Structure
+
+- Each component should be in its own file
+- Component file should export one main component as default
+- Helper functions specific to the component should be in the same file
+- Shared helper functions should be in the `lib` directory
+
+### TypeScript
+
+- All files should use TypeScript
+- Define interfaces and types in component files for component props
+- Define shared types in `src/types` directory
+- Use explicit typing rather than inferred types for function parameters and returns
+
+### CSS/Styling
+
+- Use Tailwind CSS for styling
+- For complex components, consider using composition with smaller components
+- Follow a mobile-first approach for responsive design
+- Use utility classes for layout and spacing
+- Use the `cn()` utility function for conditional class names
 
 ## Deployment
 
@@ -144,9 +175,7 @@ For more details on Docker deployment, see the [Docker README](docker/README.md)
 
 Comprehensive documentation is available in the following files:
 
-- **[DOCUMENTATION.md](DOCUMENTATION.md)**: Main project documentation covering all aspects of the site
-- **[Authentication-Flow.md](Authentication-Flow.md)**: Detailed explanation of the authentication system
-- **[CODE-STRUCTURE.md](CODE-STRUCTURE.md)**: Code organization standards and patterns
+- **[docs/DOCUMENTATION.md](docs/DOCUMENTATION.md)**: Main project documentation covering all aspects of the site
 - **[docs/supabase-storage-guide.md](docs/supabase-storage-guide.md)**: Detailed guide on Supabase Storage implementation
 - **[docker/README.md](docker/README.md)**: Docker deployment configuration and options
 
@@ -173,8 +202,6 @@ The A&B School website implements several security measures:
 - **Input Validation**: All user inputs validated with Zod
 - **Content Security**: Sanitization of user-generated content
 - **Session Management**: Secure HTTP-only cookies and proper session handling
-
-For more details on security implementation, see the [Authentication-Flow.md](Authentication-Flow.md) document.
 
 ## Testing
 
@@ -232,6 +259,16 @@ The A&B School website includes a complete admin dashboard for managing content:
    pnpm run create-achievements-bucket
    ```
 
+### Keep Database Alive
+
+To prevent your Supabase database from going to sleep on the free tier, use the keep-alive script:
+
+```bash
+pnpm run keep-alive
+```
+
+This script will ping your database periodically to keep it active. Alternatively, use GitHub Actions for a more reliable solution - see the `.github/workflows/keep-alive.yml` file.
+
 ### Storage Architecture
 
 The website uses a structured approach to file storage:
@@ -280,10 +317,9 @@ The admin dashboard is available at `/admin`. You'll need to sign in with your S
 
 If you encounter issues during setup or deployment, consult the following resources:
 
-1. Check the troubleshooting sections in [DOCUMENTATION.md](DOCUMENTATION.md)
-2. For authentication issues, see [Authentication-Flow.md](Authentication-Flow.md)
-3. For storage issues, refer to [docs/supabase-storage-guide.md](docs/supabase-storage-guide.md)
-4. For Docker-related problems, refer to [docker/README.md](docker/README.md)
+1. Check the troubleshooting sections in [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md)
+2. For storage issues, refer to [docs/supabase-storage-guide.md](docs/supabase-storage-guide.md)
+3. For Docker-related problems, refer to [docker/README.md](docker/README.md)
 
 Common issues and solutions:
 - **Database connection problems**: Verify Supabase credentials and network access

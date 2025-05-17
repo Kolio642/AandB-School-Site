@@ -1,0 +1,59 @@
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # Run every 6 hours
+    - cron: '0 */6 * * *'
+  # Allow manual triggering for testing
+  workflow_dispatch:
+
+jobs:
+  ping-database:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install @supabase/supabase-js
+
+      - name: Ping Supabase database
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          node -e "
+          const { createClient } = require('@supabase/supabase-js');
+          
+          async function ping() {
+            const supabase = createClient(
+              process.env.SUPABASE_URL,
+              process.env.SUPABASE_KEY
+            );
+            
+            try {
+              const { data, error } = await supabase
+                .from('news')
+                .select('id')
+                .limit(1);
+                
+              if (error) {
+                console.error('Error pinging database:', error.message);
+                process.exit(1);
+              }
+              
+              console.log('Successfully pinged database at', new Date().toISOString());
+            } catch (error) {
+              console.error('Exception:', error.message);
+              process.exit(1);
+            }
+          }
+          
+          ping();
+          " 
