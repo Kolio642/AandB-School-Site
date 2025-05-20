@@ -26,7 +26,6 @@ export function Header({ locale }: HeaderProps) {
   // Navigation items based on translations
   const navItems: NavItem[] = [
     { href: `/${locale}`, label: t.nav.home },
-    { href: `/${locale}/about`, label: t.nav.about },
     { href: `/${locale}/education`, label: t.nav.education },
     { href: `/${locale}/achievements`, label: t.nav.achievements },
     { href: `/${locale}/news`, label: t.nav.news },

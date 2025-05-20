@@ -1,8 +1,10 @@
 import { Locale, locales } from '@/lib/i18n';
 import { Metadata } from 'next';
-import Image from 'next/image';
+import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 import { getAllAchievements } from '@/lib/data';
+import { Button } from '@/components/ui/button';
+import ImageWithFallback from '@/components/ui/image-with-fallback';
 
 interface AchievementsPageProps {
   params: {
@@ -47,87 +49,87 @@ export default async function AchievementsPage({ params }: AchievementsPageProps
   return (
     <main className="py-10">
       <div className="container">
-        <div className="max-w-5xl mx-auto">
-          <h1 className="text-4xl font-bold mb-6">
+        <div className="mb-10 text-center">
+          <h1 className="text-3xl md:text-4xl font-bold mb-6">
             {locale === 'en' ? 'Student Achievements' : 'Ученически постижения'}
           </h1>
           
-          <p className="text-lg text-muted-foreground mb-8">
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-8">
             {locale === 'en' 
               ? 'Our students regularly participate in and win awards at national and international competitions in mathematics and informatics.' 
               : 'Нашите ученици редовно участват и печелят награди на национални и международни състезания по математика и информатика.'}
           </p>
-          
-          <div className="space-y-12">
-            {sortedYears.map((year) => (
-              <div key={year} className="border rounded-lg p-6 bg-card">
-                <h2 className="text-2xl font-bold mb-6">{year}</h2>
-                <div className="space-y-8">
-                  {achievementsByYear[year].map((achievement) => {
-                    const translation = achievement.translations[locale];
-                    const formattedDate = formatDate(
-                      new Date(achievement.date), 
-                      locale === 'en' ? 'en-US' : 'bg-BG'
-                    );
-                    
-                    return (
-                      <div key={achievement.id} className="flex flex-col md:flex-row gap-6 pb-8 border-b last:border-b-0 last:pb-0">
-                        {achievement.image && (
-                          <div className="relative w-full md:w-64 h-48 overflow-hidden rounded-md">
-                            <Image
-                              src={achievement.image}
-                              alt={translation.title}
-                              fill
-                              className="object-cover"
-                            />
+        </div>
+        
+        <div className="space-y-16">
+          {sortedYears.map((year) => (
+            <div key={year}>
+              <h2 className="text-2xl font-bold mb-8 border-b pb-2">{year}</h2>
+              
+              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                {achievementsByYear[year].map((achievement) => {
+                  const translation = achievement.translations[locale];
+                  const formattedDate = formatDate(
+                    new Date(achievement.date), 
+                    locale === 'en' ? 'en-US' : 'bg-BG'
+                  );
+                  
+                  return (
+                    <div key={achievement.id} className="flex flex-col overflow-hidden rounded-lg shadow-md bg-card">
+                      <div className="relative h-48 w-full" style={{position: 'relative'}}>
+                        <ImageWithFallback 
+                          src={achievement.image || '/placeholder.jpg'}
+                          alt={translation.title}
+                          fill
+                          className="object-cover transition-transform hover:scale-105"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2 p-6">
+                        <div className="flex flex-wrap gap-x-4 gap-y-2 mb-2">
+                          <p className="text-sm text-muted-foreground">{formattedDate}</p>
+                          
+                          <div className="text-sm">
+                            <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800">
+                              {achievement.category}
+                            </span>
                           </div>
+                        </div>
+                        
+                        {achievement.student_name && (
+                          <p className="text-sm font-medium text-muted-foreground">
+                            {achievement.student_name}
+                          </p>
                         )}
-                        <div className="flex-1">
-                          <h3 className="text-xl font-semibold mb-2">{translation.title}</h3>
-                          
-                          <div className="flex flex-wrap gap-x-4 gap-y-2 mb-3 text-sm">
-                            <div className="text-muted-foreground">
-                              <span className="font-medium">{formattedDate}</span>
-                            </div>
-                            
-                            {achievement.student_name && (
-                              <div className="text-muted-foreground">
-                                <span className="font-medium">{achievement.student_name}</span>
-                              </div>
-                            )}
-                            
-                            <div className="text-muted-foreground">
-                              <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800">
-                                {achievement.category}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div 
-                            className="prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={{ __html: translation.description }}
-                          />
+                        
+                        <h3 className="text-xl font-semibold line-clamp-2">{translation.title}</h3>
+                        
+                        <div className="mt-auto pt-4">
+                          <Button asChild variant="outline" size="sm">
+                            <Link href={`/${locale}/achievements/${achievement.id}`}>
+                              {locale === 'en' ? 'View Details' : 'Вижте детайли'}
+                            </Link>
+                          </Button>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-            
-            {sortedYears.length === 0 && (
-              <div className="text-center p-8 border rounded-lg">
-                <h3 className="text-xl font-semibold">
-                  {locale === 'en' ? 'No achievements found' : 'Не са намерени постижения'}
-                </h3>
-                <p className="text-muted-foreground mt-2">
-                  {locale === 'en' 
-                    ? 'Check back later for updates on our student achievements' 
-                    : 'Проверете по-късно за обновления относно постиженията на нашите ученици'}
-                </p>
-              </div>
-            )}
-          </div>
+            </div>
+          ))}
+          
+          {sortedYears.length === 0 && (
+            <div className="text-center p-8 border rounded-lg">
+              <h3 className="text-xl font-semibold">
+                {locale === 'en' ? 'No achievements found' : 'Не са намерени постижения'}
+              </h3>
+              <p className="text-muted-foreground mt-2">
+                {locale === 'en' 
+                  ? 'Check back later for updates on our student achievements' 
+                  : 'Проверете по-късно за обновления относно постиженията на нашите ученици'}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </main>

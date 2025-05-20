@@ -2,6 +2,7 @@
 // New components should import from @supabase/supabase-js directly
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/supabase';
+import { cache } from 'react';
 
 // Check if environment variables are defined
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
@@ -37,6 +38,17 @@ export const supabaseAdmin = supabaseServiceKey
       },
     })
   : supabase;
+
+// Cached fetch function for data fetching
+export const cachedFetch = cache(async (url: string) => {
+  const response = await fetch(url);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch: ${response.status}`);
+  }
+  
+  return response.json();
+});
 
 // Helper function to handle Supabase errors
 export function handleSupabaseError(error: any): string {

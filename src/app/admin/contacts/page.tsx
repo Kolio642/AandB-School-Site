@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Pencil, Trash2, Search, EyeIcon, RefreshCcw, ArrowUpDown, Calendar, Check } from 'lucide-react';
+import { Trash2, Search, RefreshCcw, ArrowUpDown, Mail, CheckCircle, XCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -33,66 +34,57 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { deleteImage } from '@/lib/storage-helpers';
 
-interface NewsItem {
+interface ContactMessage {
   id: string;
-  title_en: string;
-  title_bg: string;
-  summary_en: string;
-  summary_bg: string;
-  content_en: string;
-  content_bg: string;
-  date: string;
-  image?: string;
-  published: boolean;
+  name: string;
+  email: string;
+  message: string;
   created_at: string;
-  updated_at: string;
+  responded: boolean;
 }
 
-type PublishFilter = 'all' | 'published' | 'unpublished';
-type SortField = 'title' | 'date' | 'created_at';
+type StatusFilter = 'all' | 'responded' | 'pending';
+type SortField = 'name' | 'email' | 'created_at';
 type SortOrder = 'asc' | 'desc';
 
-export default function NewsManagementPage() {
-  const [news, setNews] = useState<NewsItem[]>([]);
+export default function ContactsManagementPage() {
+  const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [publishFilter, setPublishFilter] = useState<PublishFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   
-  // Added for multi-select functionality
+  // Multi-select functionality
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
   useEffect(() => {
-    fetchNews();
+    fetchMessages();
   }, []);
-
+  
   // Clear selections when filters change
   useEffect(() => {
     setSelectedItems([]);
-  }, [searchQuery, publishFilter]);
+  }, [searchQuery, statusFilter]);
 
-  async function fetchNews() {
+  async function fetchMessages() {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('news')
+        .from('contact_messages')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setNews(data || []);
+      setMessages(data || []);
     } catch (error) {
-      console.error('Error fetching news:', error);
+      console.error('Error fetching contact messages:', error);
       toast({
         title: "Error",
-        description: "Failed to load news items",
+        description: "Failed to load contact messages",
         variant: "destructive",
       });
     } finally {
@@ -101,145 +93,98 @@ export default function NewsManagementPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Are you sure you want to delete this news item?')) return;
+    if (!confirm('Are you sure you want to delete this message?')) return;
 
     try {
-      setIsDeleting(true);
+      setIsProcessing(true);
       
-      // Find the news item
-      const newsItem = news.find(item => item.id === id);
-      if (!newsItem) throw new Error('News item not found');
-      
-      // Delete the image from storage if exists
-      if (newsItem.image) {
-        const deleted = await deleteImage(newsItem.image);
-        if (deleted) {
-          console.log('Successfully deleted image for news item:', id);
-        } else {
-          console.warn('Failed to delete image for news item:', id);
-          // Continue with deletion anyway
-        }
-      }
-      
-      // Delete the news item from the database
+      // Delete from database
       const { error } = await supabase
-        .from('news')
+        .from('contact_messages')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
       
       // Update local state
-      setNews(news.filter(item => item.id !== id));
+      setMessages(messages.filter(item => item.id !== id));
       
       toast({
         title: "Success",
-        description: "News item deleted successfully",
+        description: "Message deleted successfully",
       });
     } catch (error: any) {
-      console.error('Error deleting news:', error);
+      console.error('Error deleting message:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete news item",
+        description: error.message || "Failed to delete message",
         variant: "destructive",
       });
     } finally {
-      setIsDeleting(false);
+      setIsProcessing(false);
     }
   }
 
-  async function togglePublishStatus(id: string, currentStatus: boolean) {
+  async function toggleRespondedStatus(id: string, currentStatus: boolean) {
     try {
       const { error } = await supabase
-        .from('news')
-        .update({ published: !currentStatus })
+        .from('contact_messages')
+        .update({ responded: !currentStatus })
         .eq('id', id);
 
       if (error) throw error;
       
       // Update local state
-      setNews(news.map(item => 
-        item.id === id ? {...item, published: !currentStatus} : item
+      setMessages(messages.map(item => 
+        item.id === id ? {...item, responded: !currentStatus} : item
       ));
       
       toast({
         title: "Success",
-        description: `News item ${!currentStatus ? 'published' : 'unpublished'} successfully`,
+        description: `Message marked as ${!currentStatus ? 'responded' : 'pending'}`,
       });
     } catch (error: any) {
-      console.error('Error updating publish status:', error);
+      console.error('Error updating status:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update publish status",
+        description: error.message || "Failed to update status",
         variant: "destructive",
       });
     }
   }
 
-  // New function for handling bulk delete
+  // Bulk delete handler
   async function handleBulkDelete() {
     if (selectedItems.length === 0) return;
     
-    if (!confirm(`Are you sure you want to delete ${selectedItems.length} news item(s)?`)) return;
+    if (!confirm(`Are you sure you want to delete ${selectedItems.length} message(s)?`)) return;
 
     try {
       setIsBulkProcessing(true);
       
-      // Process each selected item
-      const errors = [];
-      for (const id of selectedItems) {
-        // Find the news item
-        const newsItem = news.find(item => item.id === id);
-        if (!newsItem) {
-          errors.push(`Item with ID ${id} not found`);
-          continue;
-        }
+      // Delete all selected items
+      const { error } = await supabase
+        .from('contact_messages')
+        .delete()
+        .in('id', selectedItems);
         
-        // Delete image if exists
-        if (newsItem.image) {
-          const deleted = await deleteImage(newsItem.image);
-          if (!deleted) {
-            console.warn('Failed to delete image for news item:', id);
-          }
-        }
-        
-        // Delete from database
-        const { error } = await supabase
-          .from('news')
-          .delete()
-          .eq('id', id);
-          
-        if (error) {
-          errors.push(`Error deleting item ${id}: ${error.message}`);
-        }
-      }
+      if (error) throw error;
       
-      // Update local state - remove deleted items
-      if (errors.length < selectedItems.length) {
-        setNews(news.filter(item => !selectedItems.includes(item.id)));
-        // Clear selection
-        setSelectedItems([]);
-        
-        toast({
-          title: "Success",
-          description: `${selectedItems.length - errors.length} news items deleted successfully`,
-        });
-      }
+      // Update local state
+      setMessages(messages.filter(item => !selectedItems.includes(item.id)));
       
-      // Show errors if any
-      if (errors.length > 0) {
-        console.error('Errors during bulk delete:', errors);
-        toast({
-          title: "Partial Success",
-          description: `${errors.length} items failed to delete`,
-          variant: "destructive",
-        });
-      }
+      // Clear selection
+      setSelectedItems([]);
+      
+      toast({
+        title: "Success",
+        description: `${selectedItems.length} messages deleted successfully`,
+      });
     } catch (error: any) {
       console.error('Error in bulk delete:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete news items",
+        description: error.message || "Failed to delete messages",
         variant: "destructive",
       });
     } finally {
@@ -247,8 +192,8 @@ export default function NewsManagementPage() {
     }
   }
 
-  // New function for bulk publish/unpublish
-  async function handleBulkPublish(publish: boolean) {
+  // Bulk mark as responded/pending
+  async function handleBulkMarkStatus(responded: boolean) {
     if (selectedItems.length === 0) return;
 
     try {
@@ -256,29 +201,29 @@ export default function NewsManagementPage() {
       
       // Update all selected items
       const { error } = await supabase
-        .from('news')
-        .update({ published: publish })
+        .from('contact_messages')
+        .update({ responded })
         .in('id', selectedItems);
         
       if (error) throw error;
       
       // Update local state
-      setNews(news.map(item => 
-        selectedItems.includes(item.id) ? {...item, published: publish} : item
+      setMessages(messages.map(item => 
+        selectedItems.includes(item.id) ? {...item, responded} : item
       ));
       
       toast({
         title: "Success",
-        description: `${selectedItems.length} news items ${publish ? 'published' : 'unpublished'} successfully`,
+        description: `${selectedItems.length} messages marked as ${responded ? 'responded' : 'pending'}`,
       });
       
       // Clear selection
       setSelectedItems([]);
     } catch (error: any) {
-      console.error(`Error in bulk ${publish ? 'publish' : 'unpublish'}:`, error);
+      console.error(`Error in bulk mark as ${responded ? 'responded' : 'pending'}:`, error);
       toast({
         title: "Error",
-        description: error.message || `Failed to ${publish ? 'publish' : 'unpublish'} news items`,
+        description: error.message || `Failed to mark messages as ${responded ? 'responded' : 'pending'}`,
         variant: "destructive",
       });
     } finally {
@@ -286,75 +231,10 @@ export default function NewsManagementPage() {
     }
   }
 
-  // Apply all filters and sorting
-  const filteredAndSortedNews = news
-    // First apply publish filter
-    .filter(item => {
-      if (publishFilter === 'all') return true;
-      return publishFilter === 'published' ? item.published : !item.published;
-    })
-    // Then apply search query
-    .filter(item => {
-      if (searchQuery.trim() === '') return true;
-      return (
-        item.title_en.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.title_bg.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.summary_en?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.summary_bg?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    })
-    // Finally sort the results
-    .sort((a, b) => {
-      // Handle different sort fields
-      let valueA: any;
-      let valueB: any;
-
-      if (sortField === 'title') {
-        valueA = a.title_en || a.title_bg || '';
-        valueB = b.title_en || b.title_bg || '';
-      } else if (sortField === 'date') {
-        valueA = new Date(a.date).getTime();
-        valueB = new Date(b.date).getTime();
-      } else {
-        // Default to created_at
-        valueA = new Date(a.created_at).getTime();
-        valueB = new Date(b.created_at).getTime();
-      }
-
-      // Apply sort order
-      if (sortOrder === 'asc') {
-        return valueA > valueB ? 1 : -1;
-      } else {
-        return valueA < valueB ? 1 : -1;
-      }
-    });
-
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  // Toggle sort order or change sort field
-  const handleSort = (field: SortField) => {
-    if (field === sortField) {
-      // Toggle sort order if the same field is clicked
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      // Change sort field and reset to appropriate order (desc for dates, asc for titles)
-      setSortField(field);
-      setSortOrder(field === 'title' ? 'asc' : 'desc');
-    }
-  };
-
   // Handler for selecting all items
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedItems(filteredAndSortedNews.map(item => item.id));
+      setSelectedItems(filteredAndSortedMessages.map(item => item.id));
     } else {
       setSelectedItems([]);
     }
@@ -369,23 +249,83 @@ export default function NewsManagementPage() {
     }
   };
 
+  // Apply all filters and sorting
+  const filteredAndSortedMessages = messages
+    // First apply status filter
+    .filter(item => {
+      if (statusFilter === 'all') return true;
+      return statusFilter === 'responded' ? item.responded : !item.responded;
+    })
+    // Then apply search query
+    .filter(item => {
+      if (searchQuery.trim() === '') return true;
+      return (
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.message.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    })
+    // Finally sort the results
+    .sort((a, b) => {
+      // Handle different sort fields
+      let valueA: any;
+      let valueB: any;
+
+      if (sortField === 'name') {
+        valueA = a.name;
+        valueB = b.name;
+      } else if (sortField === 'email') {
+        valueA = a.email;
+        valueB = b.email;
+      } else {
+        // Default to created_at
+        valueA = new Date(a.created_at).getTime();
+        valueB = new Date(b.created_at).getTime();
+      }
+
+      // Apply sort order
+      if (sortOrder === 'asc') {
+        return valueA > valueB ? 1 : -1;
+      } else {
+        return valueA < valueB ? 1 : -1;
+      }
+    });
+
   // Check if all visible items are selected
-  const areAllSelected = filteredAndSortedNews.length > 0 && 
-    filteredAndSortedNews.every(item => selectedItems.includes(item.id));
+  const areAllSelected = filteredAndSortedMessages.length > 0 && 
+    filteredAndSortedMessages.every(item => selectedItems.includes(item.id));
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Toggle sort order or change sort field
+  const handleSort = (field: SortField) => {
+    if (field === sortField) {
+      // Toggle sort order if the same field is clicked
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Change sort field and reset to appropriate order
+      setSortField(field);
+      setSortOrder(field === 'created_at' ? 'desc' : 'asc');
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">News Management</h1>
-          <p className="text-muted-foreground">Manage news articles for the website</p>
+          <h1 className="text-2xl font-bold">Contact Messages</h1>
+          <p className="text-muted-foreground">Manage contact form submissions</p>
         </div>
-        <Button asChild>
-          <Link href="/admin/news/new" className="flex items-center gap-2">
-            <PlusCircle className="h-4 w-4" />
-            <span>Add News</span>
-          </Link>
-        </Button>
       </div>
 
       {/* Bulk actions bar - shown when items are selected */}
@@ -407,20 +347,20 @@ export default function NewsManagementPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleBulkPublish(true)}
+                onClick={() => handleBulkMarkStatus(true)}
                 disabled={isBulkProcessing}
                 className="h-8"
               >
-                Publish
+                Mark Responded
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleBulkPublish(false)}
+                onClick={() => handleBulkMarkStatus(false)}
                 disabled={isBulkProcessing}
                 className="h-8"
               >
-                Unpublish
+                Mark Pending
               </Button>
               <Button
                 variant="destructive"
@@ -439,20 +379,20 @@ export default function NewsManagementPage() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col space-y-3 md:flex-row md:items-center md:justify-between md:space-y-0">
-            <CardTitle>All News Articles</CardTitle>
+            <CardTitle>Contact Messages</CardTitle>
             <div className="flex flex-col space-y-3 md:flex-row md:items-center md:space-x-2 md:space-y-0">
-              {/* Publish filter dropdown */}
+              {/* Status filter dropdown */}
               <Select
-                value={publishFilter}
-                onValueChange={(value) => setPublishFilter(value as PublishFilter)}
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as StatusFilter)}
               >
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
-                  <SelectItem value="unpublished">Unpublished</SelectItem>
+                  <SelectItem value="responded">Responded</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -461,7 +401,7 @@ export default function NewsManagementPage() {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Search news..."
+                  placeholder="Search messages..."
                   className="pl-8 w-full md:w-[200px]"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -480,22 +420,22 @@ export default function NewsManagementPage() {
                   <DropdownMenuLabel>Sort by</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuCheckboxItem 
-                    checked={sortField === 'title'} 
-                    onCheckedChange={() => handleSort('title')}
+                    checked={sortField === 'name'} 
+                    onCheckedChange={() => handleSort('name')}
                   >
-                    Title {sortField === 'title' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    Name {sortField === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem 
-                    checked={sortField === 'date'}
-                    onCheckedChange={() => handleSort('date')}
+                    checked={sortField === 'email'}
+                    onCheckedChange={() => handleSort('email')}
                   >
-                    Publication Date {sortField === 'date' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    Email {sortField === 'email' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem 
                     checked={sortField === 'created_at'}
                     onCheckedChange={() => handleSort('created_at')}
                   >
-                    Created Date {sortField === 'created_at' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    Date {sortField === 'created_at' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </DropdownMenuCheckboxItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -503,8 +443,9 @@ export default function NewsManagementPage() {
               <Button 
                 variant="outline" 
                 size="icon" 
-                onClick={fetchNews}
+                onClick={fetchMessages}
                 disabled={isLoading}
+                className="h-8 w-8"
               >
                 <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                 <span className="sr-only">Refresh</span>
@@ -518,7 +459,6 @@ export default function NewsManagementPage() {
               {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="w-full flex items-center space-x-4">
                   <Skeleton className="h-4 w-4 rounded-sm" />
-                  <Skeleton className="h-12 w-12 rounded-md" />
                   <div className="space-y-2 flex-1">
                     <Skeleton className="h-4 w-[250px]" />
                     <Skeleton className="h-4 w-[200px]" />
@@ -528,7 +468,7 @@ export default function NewsManagementPage() {
               ))}
             </div>
           ) : (
-            filteredAndSortedNews.length > 0 ? (
+            filteredAndSortedMessages.length > 0 ? (
               <div className="border rounded-md">
                 <Table>
                   <TableHeader>
@@ -540,64 +480,86 @@ export default function NewsManagementPage() {
                           aria-label="Select all"
                         />
                       </TableHead>
-                      <TableHead>Title</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Message</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredAndSortedNews.map((item) => (
+                    {filteredAndSortedMessages.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>
                           <Checkbox 
                             checked={selectedItems.includes(item.id)}
                             onCheckedChange={(checked: boolean) => handleSelectItem(item.id, checked)}
-                            aria-label={`Select ${item.title_en || item.title_bg}`}
+                            aria-label={`Select message from ${item.name}`}
                           />
                         </TableCell>
                         <TableCell>
-                          <div className="font-medium truncate max-w-[400px]">{item.title_en || item.title_bg}</div>
-                          <div className="text-sm text-muted-foreground">
-                            Created: {formatDate(item.created_at)}
+                          <div className="font-medium truncate max-w-[100px]">{item.name}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="truncate max-w-[150px]">
+                            <a 
+                              href={`mailto:${item.email}`} 
+                              className="text-blue-600 hover:underline flex items-center gap-1"
+                            >
+                              <Mail className="h-3 w-3" />
+                              {item.email}
+                            </a>
                           </div>
                         </TableCell>
-                        <TableCell>{formatDate(item.date)}</TableCell>
+                        <TableCell>
+                          <div className="truncate max-w-[200px]">{item.message}</div>
+                        </TableCell>
+                        <TableCell>{formatDate(item.created_at)}</TableCell>
                         <TableCell>
                           <Badge 
-                            variant={item.published ? "success" : "secondary"}
+                            variant={item.responded ? "success" : "secondary"}
                             className="cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => togglePublishStatus(item.id, item.published)}
+                            onClick={() => toggleRespondedStatus(item.id, item.responded)}
                           >
-                            {item.published ? 'Published' : 'Draft'}
+                            {item.responded ? 'Responded' : 'Pending'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <EyeIcon className="h-4 w-4" />
-                                <span className="sr-only">Actions</span>
+                              <Button variant="ghost" size="sm">
+                                Actions
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => togglePublishStatus(item.id, item.published)}>
-                                {item.published ? 'Unpublish' : 'Publish'}
+                              <DropdownMenuItem onClick={() => toggleRespondedStatus(item.id, item.responded)}>
+                                {item.responded ? (
+                                  <>
+                                    <XCircle className="h-4 w-4 mr-2" />
+                                    Mark as Pending
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Mark as Responded
+                                  </>
+                                )}
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
-                                <Link href={`/admin/news/${item.id}/edit`}>
-                                  <Pencil className="h-4 w-4 mr-2" />
-                                  Edit News
-                                </Link>
+                                <a href={`mailto:${item.email}`} target="_blank" rel="noopener noreferrer">
+                                  <Mail className="h-4 w-4 mr-2" />
+                                  Send Email
+                                </a>
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 className="text-red-600"
                                 onClick={() => handleDelete(item.id)}
-                                disabled={isDeleting}
+                                disabled={isProcessing}
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                Delete News
+                                Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -609,23 +571,19 @@ export default function NewsManagementPage() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <p className="text-muted-foreground">No news items found with current filters.</p>
-                {(publishFilter !== 'all' || searchQuery) ? (
+                <p className="text-muted-foreground">No contact messages found with current filters.</p>
+                {(statusFilter !== 'all' || searchQuery) ? (
                   <Button 
                     variant="outline" 
                     className="mt-4"
                     onClick={() => {
-                      setPublishFilter('all');
+                      setStatusFilter('all');
                       setSearchQuery('');
                     }}
                   >
                     Clear Filters
                   </Button>
-                ) : (
-                  <Button asChild className="mt-4">
-                    <Link href="/admin/news/new">Add News</Link>
-                  </Button>
-                )}
+                ) : null}
               </div>
             )
           )}

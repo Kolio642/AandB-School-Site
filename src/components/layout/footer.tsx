@@ -54,11 +54,11 @@ export const Footer = memo(function Footer({ locale }: FooterProps) {
     // Footer links for navigation
     const footerLinks: FooterLink[] = [
       {
-        href: `/${locale}/about/history`,
+        href: `/${locale}/history`,
         label: t.nav.history
       },
       {
-        href: `/${locale}/about/team`,
+        href: `/${locale}/teachers`,
         label: t.nav.team
       },
       {
@@ -95,7 +95,7 @@ export const Footer = memo(function Footer({ locale }: FooterProps) {
             </div>
             
             <div>
-              <h3 className="text-xl font-bold mb-4">{t.nav.about}</h3>
+              <h3 className="text-xl font-bold mb-4">{t.footer.quickLinks}</h3>
               <nav aria-label="Footer navigation">
                 <ul className="space-y-2">
                   {footerLinks.map((link) => (

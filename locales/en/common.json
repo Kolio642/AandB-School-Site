@@ -39,7 +39,8 @@
   "footer": {
     "address": "Shumen 9700, 13 Hristo Botev St. (kazandzhiyska)",
     "phone": "tel. 054/831008",
-    "copyright": "© 2024 School A&B | All rights reserved"
+    "copyright": "© 2024 School A&B | All rights reserved",
+    "quickLinks": "Quick Links"
   },
   "buttons": {
     "readMore": "Read More",
@@ -48,12 +49,36 @@
     "submit": "Submit",
     "back": "Back"
   },
+  "history": {
+    "meta": {
+      "title": "Our History | A&B School",
+      "description": "Learn about the history and evolution of A&B School of Mathematics and Informatics in Shumen, Bulgaria since its founding in 1998."
+    },
+    "title": "Our History",
+    "subtitle": "Since 1998, A&B School has been dedicated to excellence in mathematics and informatics education.",
+    "founding": {
+      "title": "Our Founding",
+      "content": "Private school A&B was founded on April 1, 1998 in Shumen. Its goal was to provide additional preparation for students from II to XII class in the fields of Informatics, Mathematics, and Software technology. At first, the school was located in the \"Avangard\" building at 2 Layosh Koshut Street. In the first year, a second computer center was opened. Several months after the opening, the primary center moved to 2 Han Omurtag Street. From the autumn of 2001 until the autumn of 2004, the private school was located at 36 Pliska Street. Today, the private school A&B has its own building at 13 Hristo Botev Street."
+    },
+    "development": {
+      "title": "Growth and Development",
+      "content": "The subjects taught at the school are for students from II to XII class in the fields of mathematics, informatics - first steps, algorithms, and data structures. As a result of the hard work and dedication of the staff, continuous development of lessons, and technical modernizations, the private school has become widely recognized over the years. Students from all over the country want to learn here. Students learning at Private School A&B very often take first places not only in Shumen but also at national competitions, and even at international competitions."
+    },
+    "achievements": {
+      "title": "Notable Achievements",
+      "content": "To date, over 1,800 adults and 1,700 children have graduated from various courses at the School. Teachers have trained large groups of employees from various businesses in the city and the region, including Alcomet, the Regional Library \"St. Chilingirov\" in Shumen, and many others. Teachers have always received high marks for their teaching and presentational skills. The school has built a science-based system for primary and specialized computer training, and the results of its application have been exported and valued at national scientific meetings."
+    },
+    "vision": {
+      "title": "Our Vision for the Future",
+      "content": "As we continue to grow, we remain committed to our founding principles of providing high-quality education in mathematics and informatics. We strive to adapt to the ever-changing technological landscape while maintaining our tradition of excellence. Our goal is to continue producing graduates who are well-prepared for success in higher education and careers in technology and mathematics."
+    }
+  },
   "teachers": {
     "meta": {
-      "title": "Our Teachers | A&B School",
+      "title": "Our Team | A&B School",
       "description": "Meet our exceptional team of experienced educators at A&B School of Mathematics and Informatics in Shumen, Bulgaria."
     },
-    "title": "Our Teachers",
+    "title": "Our Team",
     "subtitle": "Meet our team of experienced and dedicated educators who inspire and guide our students to achieve their full potential."
   }
 } 

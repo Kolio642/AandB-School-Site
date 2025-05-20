@@ -1,16 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { PlusCircle, Pencil, Trash2, Search, RefreshCcw, Users, ArrowUpDown } from 'lucide-react';
+import { PlusCircle, Pencil, Trash2, Search, EyeIcon, RefreshCcw, ArrowUpDown, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -35,56 +32,68 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { deleteImage } from '@/lib/storage-helpers';
 
-interface Teacher {
+interface Course {
   id: string;
-  name: string;
   title_en: string;
   title_bg: string;
-  bio_en: string;
-  bio_bg: string;
-  email: string;
+  description_en: string;
+  description_bg: string;
+  category: string;
   image: string | null;
   published: boolean;
+  sort_order: number;
   created_at: string;
   updated_at: string;
-  sort_order: number;
 }
 
+// Course categories
+const COURSE_CATEGORIES = [
+  'language',
+  'science',
+  'math',
+  'arts',
+  'technology',
+  'sports',
+  'humanities'
+];
+
 type PublishFilter = 'all' | 'published' | 'unpublished';
-type SortField = 'name' | 'sort_order' | 'created_at';
+type SortField = 'title' | 'category' | 'sort_order' | 'created_at';
 type SortOrder = 'asc' | 'desc';
 
-export default function TeachersPage() {
-  const router = useRouter();
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
+export default function CoursesManagementPage() {
+  const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const [publishFilter, setPublishFilter] = useState<PublishFilter>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('sort_order');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   useEffect(() => {
-    fetchTeachers();
+    fetchCourses();
   }, []);
 
-  async function fetchTeachers() {
+  async function fetchCourses() {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('teachers')
+        .from('courses')
         .select('*')
         .order('sort_order', { ascending: true });
 
       if (error) throw error;
-      setTeachers(data || []);
+      setCourses(data || []);
     } catch (error) {
-      console.error('Error fetching teachers:', error);
+      console.error('Error fetching courses:', error);
       toast({
         title: "Error",
-        description: "Failed to load teachers",
+        description: "Failed to load courses",
         variant: "destructive",
       });
     } finally {
@@ -93,46 +102,46 @@ export default function TeachersPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Are you sure you want to delete this teacher?')) return;
+    if (!confirm('Are you sure you want to delete this course?')) return;
 
     try {
       setIsDeleting(true);
       
-      // Find the teacher
-      const teacher = teachers.find(item => item.id === id);
-      if (!teacher) throw new Error('Teacher not found');
+      // Find the course item
+      const courseItem = courses.find(item => item.id === id);
+      if (!courseItem) throw new Error('Course not found');
       
       // Delete the image from storage if exists
-      if (teacher.image) {
-        const deleted = await deleteImage(teacher.image);
+      if (courseItem.image) {
+        const deleted = await deleteImage(courseItem.image);
         if (deleted) {
-          console.log('Successfully deleted image for teacher:', id);
+          console.log('Successfully deleted image for course:', id);
         } else {
-          console.warn('Failed to delete image for teacher:', id);
+          console.warn('Failed to delete image for course:', id);
           // Continue with deletion anyway
         }
       }
       
-      // Delete the teacher from the database
+      // Delete the course from the database
       const { error } = await supabase
-        .from('teachers')
+        .from('courses')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
       
       // Update local state
-      setTeachers(teachers.filter(item => item.id !== id));
+      setCourses(courses.filter(item => item.id !== id));
       
       toast({
         title: "Success",
-        description: "Teacher deleted successfully",
+        description: "Course deleted successfully",
       });
     } catch (error: any) {
-      console.error('Error deleting teacher:', error);
+      console.error('Error deleting course:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete teacher",
+        description: error.message || "Failed to delete course",
         variant: "destructive",
       });
     } finally {
@@ -143,20 +152,20 @@ export default function TeachersPage() {
   async function togglePublishStatus(id: string, currentStatus: boolean) {
     try {
       const { error } = await supabase
-        .from('teachers')
+        .from('courses')
         .update({ published: !currentStatus })
         .eq('id', id);
 
       if (error) throw error;
       
       // Update local state
-      setTeachers(teachers.map(item => 
+      setCourses(courses.map(item => 
         item.id === id ? {...item, published: !currentStatus} : item
       ));
       
       toast({
         title: "Success",
-        description: `Teacher ${!currentStatus ? 'published' : 'unpublished'} successfully`,
+        description: `Course ${!currentStatus ? 'published' : 'unpublished'} successfully`,
       });
     } catch (error: any) {
       console.error('Error updating publish status:', error);
@@ -169,22 +178,26 @@ export default function TeachersPage() {
   }
 
   // Apply all filters and sorting
-  const filteredAndSortedTeachers = teachers
+  const filteredAndSortedCourses = courses
     // First apply publish filter
     .filter(item => {
       if (publishFilter === 'all') return true;
       return publishFilter === 'published' ? item.published : !item.published;
     })
+    // Then apply category filter
+    .filter(item => {
+      if (!categoryFilter || categoryFilter === 'all') return true;
+      return item.category === categoryFilter;
+    })
     // Then apply search query
     .filter(item => {
       if (searchQuery.trim() === '') return true;
       return (
-        item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.title_en?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.title_bg?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.bio_en?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.bio_bg?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.email?.toLowerCase().includes(searchQuery.toLowerCase())
+        item.title_en.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.title_bg.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description_en?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description_bg?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.category.toLowerCase().includes(searchQuery.toLowerCase())
       );
     })
     // Finally sort the results
@@ -193,9 +206,12 @@ export default function TeachersPage() {
       let valueA: any;
       let valueB: any;
 
-      if (sortField === 'name') {
-        valueA = a.name || '';
-        valueB = b.name || '';
+      if (sortField === 'title') {
+        valueA = a.title_en || a.title_bg || '';
+        valueB = b.title_en || b.title_bg || '';
+      } else if (sortField === 'category') {
+        valueA = a.category;
+        valueB = b.category;
       } else if (sortField === 'created_at') {
         valueA = new Date(a.created_at).getTime();
         valueB = new Date(b.created_at).getTime();
@@ -213,15 +229,20 @@ export default function TeachersPage() {
       }
     });
 
+  // Helper function to capitalize first letter
+  const capitalize = (str: string) => {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
+
   // Toggle sort order or change sort field
   const handleSort = (field: SortField) => {
     if (field === sortField) {
       // Toggle sort order if the same field is clicked
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
-      // Change sort field and reset to appropriate order
+      // Change sort field and reset to ascending
       setSortField(field);
-      setSortOrder(field === 'name' ? 'asc' : 'desc');
+      setSortOrder('asc');
     }
   };
 
@@ -229,13 +250,13 @@ export default function TeachersPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Teachers</h1>
-          <p className="text-muted-foreground">Manage school teaching staff</p>
+          <h1 className="text-2xl font-bold">Courses Management</h1>
+          <p className="text-muted-foreground">Manage courses for the website</p>
         </div>
         <Button asChild>
-          <Link href="/admin/teachers/new" className="flex items-center gap-2">
+          <Link href="/admin/courses/new" className="flex items-center gap-2">
             <PlusCircle className="h-4 w-4" />
-            <span>Add Teacher</span>
+            <span>Add Course</span>
           </Link>
         </Button>
       </div>
@@ -243,7 +264,7 @@ export default function TeachersPage() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col space-y-3 md:flex-row md:items-center md:justify-between md:space-y-0">
-            <CardTitle>All Teachers</CardTitle>
+            <CardTitle>All Courses</CardTitle>
             <div className="flex flex-col space-y-3 md:flex-row md:items-center md:space-x-2 md:space-y-0">
               {/* Publish filter dropdown */}
               <Select
@@ -260,12 +281,30 @@ export default function TeachersPage() {
                 </SelectContent>
               </Select>
 
+              {/* Category filter dropdown */}
+              <Select
+                value={categoryFilter}
+                onValueChange={(value) => setCategoryFilter(value)}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {COURSE_CATEGORIES.map(category => (
+                    <SelectItem key={category} value={category}>
+                      {capitalize(category)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
               {/* Search input */}
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Search teachers..."
+                  placeholder="Search courses..."
                   className="pl-8 w-full md:w-[200px]"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -284,10 +323,16 @@ export default function TeachersPage() {
                   <DropdownMenuLabel>Sort by</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuCheckboxItem 
-                    checked={sortField === 'name'} 
-                    onCheckedChange={() => handleSort('name')}
+                    checked={sortField === 'title'} 
+                    onCheckedChange={() => handleSort('title')}
                   >
-                    Name {sortField === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    Title {sortField === 'title' && (sortOrder === 'asc' ? '↑' : '↓')}
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem 
+                    checked={sortField === 'category'}
+                    onCheckedChange={() => handleSort('category')}
+                  >
+                    Category {sortField === 'category' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem 
                     checked={sortField === 'sort_order'}
@@ -304,10 +349,11 @@ export default function TeachersPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
+              {/* Refresh button */}
               <Button 
                 variant="outline" 
                 size="icon" 
-                onClick={fetchTeachers}
+                onClick={fetchCourses}
                 disabled={isLoading}
               >
                 <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -331,33 +377,32 @@ export default function TeachersPage() {
               ))}
             </div>
           ) : (
-            filteredAndSortedTeachers.length > 0 ? (
+            filteredAndSortedCourses.length > 0 ? (
               <div className="border rounded-md">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
                       <TableHead>Title</TableHead>
+                      <TableHead>Category</TableHead>
                       <TableHead>Sort Order</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredAndSortedTeachers.map((item) => (
+                    {filteredAndSortedCourses.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>
-                          <div className="font-medium">{item.name}</div>
-                          {item.email && (
-                            <div className="text-sm text-muted-foreground">
-                              {item.email}
-                            </div>
-                          )}
+                          <div className="font-medium truncate max-w-[300px]">{item.title_en || item.title_bg}</div>
+                          <div className="text-sm text-muted-foreground truncate max-w-[300px]">
+                            {item.description_en?.substring(0, 50) || item.description_bg?.substring(0, 50)}
+                            {(item.description_en?.length > 50 || item.description_bg?.length > 50) ? '...' : ''}
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <div className="truncate max-w-[200px]">
-                            {item.title_en || item.title_bg}
-                          </div>
+                          <Badge variant="outline">
+                            {capitalize(item.category)}
+                          </Badge>
                         </TableCell>
                         <TableCell>{item.sort_order}</TableCell>
                         <TableCell>
@@ -373,11 +418,7 @@ export default function TeachersPage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-more-vertical">
-                                  <circle cx="12" cy="12" r="1" />
-                                  <circle cx="12" cy="5" r="1" />
-                                  <circle cx="12" cy="19" r="1" />
-                                </svg>
+                                <EyeIcon className="h-4 w-4" />
                                 <span className="sr-only">Actions</span>
                               </Button>
                             </DropdownMenuTrigger>
@@ -387,9 +428,9 @@ export default function TeachersPage() {
                                 {item.published ? 'Unpublish' : 'Publish'}
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
-                                <Link href={`/admin/teachers/${item.id}/edit`}>
+                                <Link href={`/admin/courses/${item.id}/edit`}>
                                   <Pencil className="h-4 w-4 mr-2" />
-                                  Edit Teacher
+                                  Edit Course
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem 
@@ -398,7 +439,7 @@ export default function TeachersPage() {
                                 disabled={isDeleting}
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                Delete Teacher
+                                Delete Course
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -410,13 +451,14 @@ export default function TeachersPage() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <p className="text-muted-foreground">No teachers found with current filters.</p>
-                {(publishFilter !== 'all' || searchQuery) ? (
+                <p className="text-muted-foreground">No courses found with current filters.</p>
+                {(publishFilter !== 'all' || categoryFilter || searchQuery) ? (
                   <Button 
                     variant="outline" 
                     className="mt-4"
                     onClick={() => {
                       setPublishFilter('all');
+                      setCategoryFilter('all');
                       setSearchQuery('');
                     }}
                   >
@@ -424,7 +466,7 @@ export default function TeachersPage() {
                   </Button>
                 ) : (
                   <Button asChild className="mt-4">
-                    <Link href="/admin/teachers/new">Add Teacher</Link>
+                    <Link href="/admin/courses/new">Add Course</Link>
                   </Button>
                 )}
               </div>

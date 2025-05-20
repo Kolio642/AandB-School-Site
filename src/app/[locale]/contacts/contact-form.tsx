@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react';
 import { AlertCircle, Send } from 'lucide-react';
 import { Locale } from '@/lib/i18n';
+import { supabase } from '@/lib/supabase';
 
 interface ContactFormProps {
   locale: Locale;
@@ -61,34 +62,25 @@ export default function ContactForm({ locale }: ContactFormProps) {
     }
     
     setIsSubmitting(true);
+    setSubmitStatus({});
     
     try {
-      // For static sites, we need to use an external service or serverless function
-      // For now, we'll simulate a successful submission with a timeout
-      // Replace this with your actual form submission service
-      // Options include:
-      // 1. Formspree.io
-      // 2. Netlify Forms 
-      // 3. AWS Lambda function
-      // 4. Email.js
+      // Create a message with the combined subject and message for the database
+      const fullMessage = `Subject: ${formData.subject}\n\n${formData.message}`;
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Insert into Supabase contact_messages table
+      const { error } = await supabase
+        .from('contact_messages')
+        .insert({
+          name: formData.name,
+          email: formData.email,
+          message: fullMessage,
+          responded: false
+        });
       
-      // Here's an example of how you'd use a service like Formspree:
-      /*
-      const response = await fetch('https://formspree.io/your-form-id', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Form submission failed');
+      if (error) {
+        throw error;
       }
-      */
       
       // Success
       setSubmitStatus({
@@ -105,15 +97,16 @@ export default function ContactForm({ locale }: ContactFormProps) {
         subject: '',
         message: ''
       });
-    } catch (error) {
+    } catch (error: any) {
       // Error
+      console.error('Form submission error:', error);
+      
       setSubmitStatus({
         success: false,
         message: locale === 'en' 
           ? 'Failed to send message. Please try again later.' 
           : 'Неуспешно изпращане на съобщението. Моля, опитайте отново по-късно.'
       });
-      console.error('Form submission error:', error);
     } finally {
       setIsSubmitting(false);
     }

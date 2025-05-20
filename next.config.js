@@ -1,6 +1,8 @@
 /**
  * @type {import('next').NextConfig}
  */
+const path = require('path');
+
 const nextConfig = {
   reactStrictMode: true,
   images: {
@@ -18,6 +20,14 @@ const nextConfig = {
   swcMinify: true,
   poweredByHeader: false,
   distDir: '.next',
+  sassOptions: {
+    includePaths: [path.join(__dirname, 'styles')],
+  },
+  experimental: {
+    // These settings improve Linux compatibility
+    esmExternals: 'loose',
+    outputFileTracingRoot: path.join(__dirname, '../'),
+  },
   async headers() {
     return [
       {
@@ -25,7 +35,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; connect-src 'self' https://jnshvcouguryatgpmasw.supabase.co; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self' data:;"
+            value: "default-src 'self'; connect-src 'self' https://jnshvcouguryatgpmasw.supabase.co; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self' data:; frame-src 'self' https://*.supabase.co;"
           }
         ],
       },

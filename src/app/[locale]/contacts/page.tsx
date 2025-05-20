@@ -3,13 +3,15 @@ import { Metadata } from 'next';
 import dynamic from 'next/dynamic';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 
-// Dynamically import the OpenStreetMap component to improve page load performance
+// Leaflet styles are imported in the dynamic component itself
+
+// Dynamically import the OpenStreetMap component with preload to improve page load performance
 const OpenStreetMap = dynamic(
-  () => import('@/components/open-street-map').then(mod => mod.OpenStreetMap),
+  () => import('@/components/open-street-map'),
   {
     ssr: false,
     loading: () => (
-      <div className="flex items-center justify-center h-full min-h-[400px] bg-gray-100 rounded-2xl animate-pulse">
+      <div className="flex items-center justify-center h-full min-h-[400px] bg-gray-100 rounded-2xl">
         <div className="text-center">
           <div className="rounded-full h-12 w-12 bg-primary/30 animate-spin mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading map...</p>
@@ -66,8 +68,8 @@ export default function ContactsPage({ params }: ContactsPageProps) {
   
   // School coordinates (Shumen, Bulgaria)
   const schoolCoordinates = {
-    latitude: 43.27085906930125,
-    longitude: 26.91861753015853
+    latitude: 43.270859,
+    longitude: 26.918618
   };
   
   return (
@@ -188,13 +190,17 @@ export default function ContactsPage({ params }: ContactsPageProps) {
           
           {/* OpenStreetMap */}
           <div className="h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-lg border border-muted">
-            <OpenStreetMap 
-              latitude={schoolCoordinates.latitude}
-              longitude={schoolCoordinates.longitude}
-              height="100%"
-              zoom={16}
-              markerTitle={locale === 'en' ? 'A&B School' : 'Школа A&B'}
-            />
+            <div className="w-full h-full relative">
+              <OpenStreetMap 
+                latitude={schoolCoordinates.latitude}
+                longitude={schoolCoordinates.longitude}
+                height="100%"
+                width="100%"
+                zoom={16}
+                markerTitle={locale === 'en' ? 'A&B School' : 'Школа A&B'}
+                className="rounded-2xl"
+              />
+            </div>
           </div>
         </div>
         

@@ -115,6 +115,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               >
                 Courses
               </NavLink>
+              <NavLink
+                href="/admin/contacts"
+                isActive={pathname.startsWith('/admin/contacts')}
+              >
+                Contacts
+              </NavLink>
             </nav>
           </div>
           <Button 

@@ -3,10 +3,11 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { getNewsById, getAllNews } from '@/lib/data';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { notFound } from 'next/navigation';
 import ImageWithFallback from '@/components/ui/image-with-fallback';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface NewsDetailPageProps {
   params: {
@@ -17,7 +18,7 @@ interface NewsDetailPageProps {
 
 // This function is required when using static export with dynamic routes
 export async function generateStaticParams() {
-  const news = await getAllNews();
+  const { data: news } = await getAllNews();
   
   // Generate all combinations of locale and news id
   const params = [];
@@ -38,9 +39,9 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: NewsDetailPageProps): Promise<Metadata> {
   const { locale, id } = params;
-  const newsItem = await getNewsById(id);
+  const { data: newsItem, error } = await getNewsById(id);
   
-  if (!newsItem) {
+  if (error || !newsItem) {
     return {
       title: locale === 'en' ? 'News Not Found' : 'Новина не е намерена',
     };
@@ -61,8 +62,37 @@ export async function generateMetadata({ params }: NewsDetailPageProps): Promise
 
 export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
   const { locale, id } = params;
-  const newsItem = await getNewsById(id);
+  const { data: newsItem, error } = await getNewsById(id);
   
+  // Handle errors
+  if (error) {
+    return (
+      <main className="py-10">
+        <div className="container">
+          <Button asChild variant="ghost" className="mb-6">
+            <Link href={`/${locale}/news`}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              {locale === 'en' ? 'Back to News' : 'Обратно към новините'}
+            </Link>
+          </Button>
+          
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>
+              {locale === 'en' ? 'Error' : 'Грешка'}
+            </AlertTitle>
+            <AlertDescription>
+              {locale === 'en' 
+                ? 'There was an error loading the news article. Please try again later.' 
+                : 'Възникна грешка при зареждането на новината. Моля, опитайте отново по-късно.'}
+            </AlertDescription>
+          </Alert>
+        </div>
+      </main>
+    );
+  }
+  
+  // Handle not found
   if (!newsItem) {
     notFound();
   }

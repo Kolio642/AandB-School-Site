@@ -77,34 +77,66 @@ function mapSupabaseToAchievement(item: any): Achievement {
 }
 
 /**
- * Get all news items from Supabase
+ * Get all news items from Supabase with pagination support
  * Returns data sorted by date descending (newest first)
+ * @param page The page number (starting from 1)
+ * @param pageSize The number of items per page
  */
-export async function getAllNews(): Promise<NewsItem[]> {
+export async function getAllNews(page?: number, pageSize?: number): Promise<{
+  data: NewsItem[];
+  count: number;
+  error: string | null;
+}> {
   try {
-    // Fetch from Supabase
-    const { data, error } = await supabase
+    // Start with the base query
+    let query = supabase
       .from('news')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('published', true)
-      .order('created_at', { ascending: false });
+      .order('date', { ascending: false });
+      
+    // Apply pagination if specified
+    if (page && pageSize) {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
+    }
+    
+    // Execute the query
+    const { data, error, count } = await query;
       
     if (error) {
       console.error("Error fetching news from Supabase:", error);
-      return [];
+      return { data: [], count: 0, error: error.message };
     }
     
-    return data.map(mapSupabaseNewsToNewsItem);
-  } catch (error) {
+    // Map the results to our application's format
+    const mappedData = data
+      .filter(item => item) // Filter out null or undefined items
+      .map(mapSupabaseNewsToNewsItem);
+    
+    return { 
+      data: mappedData, 
+      count: count || mappedData.length,
+      error: null
+    };
+  } catch (error: any) {
     console.error("Error in getAllNews:", error);
-    return [];
+    return { 
+      data: [], 
+      count: 0, 
+      error: error?.message || "Failed to fetch news"
+    };
   }
 }
 
 /**
  * Get news item by ID
  */
-export async function getNewsById(id: string): Promise<NewsItem | undefined> {
+export async function getNewsById(id: string): Promise<{
+  data: NewsItem | null;
+  error: string | null;
+}> {
   try {
     // Try to find by ID
     const { data, error } = await supabase
@@ -116,13 +148,20 @@ export async function getNewsById(id: string): Promise<NewsItem | undefined> {
       
     if (error) {
       console.error("Error fetching news by ID from Supabase:", error);
-      return undefined;
+      return { data: null, error: error.message };
     }
     
-    return mapSupabaseNewsToNewsItem(data);
-  } catch (error) {
+    if (!data) {
+      return { data: null, error: "News item not found" };
+    }
+    
+    return { data: mapSupabaseNewsToNewsItem(data), error: null };
+  } catch (error: any) {
     console.error("Error in getNewsById:", error);
-    return undefined;
+    return { 
+      data: null, 
+      error: error?.message || "Failed to fetch news item" 
+    };
   }
 }
 
@@ -130,7 +169,10 @@ export async function getNewsById(id: string): Promise<NewsItem | undefined> {
  * Get the latest news items
  * @param limit Number of items to return
  */
-export async function getLatestNews(limit: number = 3): Promise<NewsItem[]> {
+export async function getLatestNews(limit: number = 3): Promise<{
+  data: NewsItem[];
+  error: string | null;
+}> {
   try {
     const { data, error } = await supabase
       .from('news')
@@ -141,13 +183,21 @@ export async function getLatestNews(limit: number = 3): Promise<NewsItem[]> {
     
     if (error) {
       console.error("Error fetching latest news:", error);
-      return [];
+      return { data: [], error: error.message };
     }
     
-    return data.map(mapSupabaseNewsToNewsItem);
-  } catch (error) {
+    // Filter out null items and map the results
+    const mappedData = (data || [])
+      .filter(item => item)
+      .map(mapSupabaseNewsToNewsItem);
+    
+    return { data: mappedData, error: null };
+  } catch (error: any) {
     console.error("Error in getLatestNews:", error);
-    return [];
+    return { 
+      data: [], 
+      error: error?.message || "Failed to fetch latest news" 
+    };
   }
 }
 

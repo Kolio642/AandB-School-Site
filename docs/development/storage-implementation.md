@@ -106,6 +106,38 @@ const handleSubmit = async (data) => {
 };
 ```
 
+## Courses Implementation
+
+For courses, the same pattern is followed:
+
+```tsx
+// In the course form component
+const [imageFile, setImageFile] = useState<File | null>(null);
+
+// When handling file input change
+const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    setImageFile(file);
+    // Show preview logic...
+  }
+};
+
+// On form submission
+const handleSubmit = async (data) => {
+  if (imageFile) {
+    const imageUrl = await uploadImage(imageFile, 'courses', data.image);
+    if (imageUrl) {
+      data.image = imageUrl;
+    }
+  }
+  
+  // Continue with saving the data...
+};
+```
+
+The main difference is that the bucket name is set to 'courses' when uploading images.
+
 ## Testing Storage Operations
 
 To verify storage functionality:
