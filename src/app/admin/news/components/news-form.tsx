@@ -18,12 +18,12 @@ import { toast } from '@/components/ui/use-toast';
 // Schema with validation
 const newsSchema = z.object({
   title_en: z.string().min(1, 'English title is required'),
-  title_bg: z.string().optional().default(''),
-  summary_en: z.string().optional().default(''),
-  summary_bg: z.string().optional().default(''),
-  content_en: z.string().optional().default(''),
-  content_bg: z.string().optional().default(''),
-  date: z.string().optional().default(() => new Date().toISOString().split('T')[0]),
+  title_bg: z.string().min(1, 'Bulgarian title is required'),
+  summary_en: z.string().min(1, 'English summary is required'),
+  summary_bg: z.string().min(1, 'Bulgarian summary is required'),
+  content_en: z.string().min(1, 'English content is required'),
+  content_bg: z.string().min(1, 'Bulgarian content is required'),
+  date: z.string().min(1, 'Date is required'),
   published: z.boolean().default(false),
   image: z.string().optional(),
   // This field won't be sent to the database but is used to handle file uploads
@@ -115,7 +115,7 @@ export function NewsForm({ initialData, newsId, onSubmit }: NewsFormProps) {
       // Handle image upload if file is selected
       if (imageFile) {
         const imageUrl = await uploadImage(imageFile, 'news', data.image);
-        processedData.image = imageUrl;
+        processedData.image = imageUrl || undefined;
       }
       
       // Call the provided onSubmit handler

@@ -58,4 +58,29 @@ export async function getServerTimestamp(): Promise<string> {
     
   if (error) throw error;
   return data;
+}
+
+/**
+ * Get teachers from the database
+ * @param publishedOnly - If true, only return published teachers
+ * @returns Array of teacher objects
+ */
+export async function getTeachers(publishedOnly: boolean = false) {
+  let query = supabase
+    .from('teachers')
+    .select('*')
+    .order('sort_order', { ascending: true });
+  
+  if (publishedOnly) {
+    query = query.eq('published', true);
+  }
+  
+  const { data, error } = await query;
+  
+  if (error) {
+    console.error('Error fetching teachers:', error);
+    return [];
+  }
+  
+  return data || [];
 } 
