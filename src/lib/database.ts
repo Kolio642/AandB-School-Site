@@ -2,6 +2,24 @@ import { supabase } from './supabase';
 import { PostgrestError } from '@supabase/supabase-js';
 
 /**
+ * Teacher interface representing a teacher in the database
+ */
+export interface Teacher {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  name: string;
+  title_en: string;
+  title_bg: string;
+  bio_en: string;
+  bio_bg: string;
+  image: string | null;
+  email: string | null;
+  published: boolean;
+  sort_order: number;
+}
+
+/**
  * Generic database query helper with error handling
  */
 export async function dbQuery<T>(
@@ -65,7 +83,7 @@ export async function getServerTimestamp(): Promise<string> {
  * @param publishedOnly - If true, only return published teachers
  * @returns Array of teacher objects
  */
-export async function getTeachers(publishedOnly: boolean = false) {
+export async function getTeachers(publishedOnly: boolean = false): Promise<Teacher[]> {
   let query = supabase
     .from('teachers')
     .select('*')
