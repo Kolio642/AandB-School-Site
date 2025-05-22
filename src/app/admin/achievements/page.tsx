@@ -37,63 +37,63 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { deleteImage } from '@/lib/storage-helpers';
 
-interface NewsItem {
+interface AchievementItem {
   id: string;
   title_en: string;
   title_bg: string;
-  summary_en: string;
-  summary_bg: string;
-  content_en: string;
-  content_bg: string;
+  description_en: string;
+  description_bg: string;
   date: string;
   image?: string;
+  student_name?: string;
+  category: string;
   published: boolean;
   created_at: string;
   updated_at: string;
 }
 
-type SearchCategory = 'all' | 'title' | 'summary' | 'content';
+type SearchCategory = 'all' | 'title' | 'description' | 'student' | 'category';
 type PublishStatus = 'all' | 'published' | 'draft';
 
-export default function NewsManagementPage() {
-  const [news, setNews] = useState<NewsItem[]>([]);
+export default function AchievementsManagementPage() {
+  const [achievements, setAchievements] = useState<AchievementItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState<SearchCategory>('all');
   const [publishFilter, setPublishFilter] = useState<PublishStatus>('all');
   const [isDeleting, setIsDeleting] = useState(false);
-  const [selectedNews, setSelectedNews] = useState<string[]>([]);
+  const [selectedAchievements, setSelectedAchievements] = useState<string[]>([]);
   const [isAllSelected, setIsAllSelected] = useState(false);
 
   useEffect(() => {
-    fetchNews();
+    fetchAchievements();
   }, []);
 
   // Handle "select all" checkbox
   useEffect(() => {
-    if (filteredNews.length > 0 && selectedNews.length === filteredNews.length) {
+    if (filteredAchievements.length > 0 && selectedAchievements.length === filteredAchievements.length) {
       setIsAllSelected(true);
     } else {
       setIsAllSelected(false);
     }
-  }, [selectedNews, news, searchQuery, publishFilter]);
+  }, [selectedAchievements, achievements, searchQuery, publishFilter]);
 
-  async function fetchNews() {
+  async function fetchAchievements() {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('news')
+        .from('achievements')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setNews(data || []);
-      setSelectedNews([]);
+      setAchievements(data || []);
+      setSelectedAchievements([]);
     } catch (error) {
-      console.error('Error fetching news:', error);
+      console.error('Error fetching achievements:', error);
       toast({
         title: "Error",
-        description: "Failed to load news items",
+        description: "Failed to load achievement items",
         variant: "destructive",
       });
     } finally {
@@ -102,47 +102,47 @@ export default function NewsManagementPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Are you sure you want to delete this news item?')) return;
+    if (!confirm('Are you sure you want to delete this achievement?')) return;
 
     try {
       setIsDeleting(true);
       
-      // Find the news item
-      const newsItem = news.find(item => item.id === id);
-      if (!newsItem) throw new Error('News item not found');
+      // Find the achievement item
+      const achievementItem = achievements.find(item => item.id === id);
+      if (!achievementItem) throw new Error('Achievement item not found');
       
       // Delete the image from storage if exists
-      if (newsItem.image) {
-        const deleted = await deleteImage(newsItem.image);
+      if (achievementItem.image) {
+        const deleted = await deleteImage(achievementItem.image);
         if (deleted) {
-          console.log('Successfully deleted image for news item:', id);
+          console.log('Successfully deleted image for achievement item:', id);
         } else {
-          console.warn('Failed to delete image for news item:', id);
+          console.warn('Failed to delete image for achievement item:', id);
           // Continue with deletion anyway
         }
       }
       
-      // Delete the news item from the database
+      // Delete the achievement item from the database
       const { error } = await supabase
-        .from('news')
+        .from('achievements')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
       
       // Update local state
-      setNews(news.filter(item => item.id !== id));
-      setSelectedNews(selectedNews.filter(itemId => itemId !== id));
+      setAchievements(achievements.filter(item => item.id !== id));
+      setSelectedAchievements(selectedAchievements.filter(itemId => itemId !== id));
       
       toast({
         title: "Success",
-        description: "News item deleted successfully",
+        description: "Achievement item deleted successfully",
       });
     } catch (error: any) {
-      console.error('Error deleting news:', error);
+      console.error('Error deleting achievement:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete news item",
+        description: error.message || "Failed to delete achievement item",
         variant: "destructive",
       });
     } finally {
@@ -151,29 +151,29 @@ export default function NewsManagementPage() {
   }
 
   async function handleBulkDelete() {
-    if (selectedNews.length === 0) return;
+    if (selectedAchievements.length === 0) return;
     
-    if (!confirm(`Are you sure you want to delete ${selectedNews.length} news item(s)?`)) return;
+    if (!confirm(`Are you sure you want to delete ${selectedAchievements.length} achievement(s)?`)) return;
 
     try {
       setIsDeleting(true);
       
       let deletePromises = [];
       
-      // Process each selected news item
-      for (const id of selectedNews) {
-        const newsItem = news.find(item => item.id === id);
-        if (!newsItem) continue;
+      // Process each selected achievement
+      for (const id of selectedAchievements) {
+        const achievement = achievements.find(item => item.id === id);
+        if (!achievement) continue;
         
         // Delete image if exists
-        if (newsItem.image) {
-          const imageDeletePromise = deleteImage(newsItem.image);
+        if (achievement.image) {
+          const imageDeletePromise = deleteImage(achievement.image);
           deletePromises.push(imageDeletePromise);
         }
         
         // Delete from database
         const dbDeletePromise = supabase
-          .from('news')
+          .from('achievements')
           .delete()
           .eq('id', id);
           
@@ -184,18 +184,18 @@ export default function NewsManagementPage() {
       await Promise.all(deletePromises);
       
       // Update local state
-      setNews(news.filter(item => !selectedNews.includes(item.id)));
-      setSelectedNews([]);
+      setAchievements(achievements.filter(item => !selectedAchievements.includes(item.id)));
+      setSelectedAchievements([]);
       
       toast({
         title: "Success",
-        description: `${selectedNews.length} news item(s) deleted successfully`,
+        description: `${selectedAchievements.length} achievement(s) deleted successfully`,
       });
     } catch (error: any) {
       console.error('Error in bulk delete:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete some news items",
+        description: error.message || "Failed to delete some achievements",
         variant: "destructive",
       });
     } finally {
@@ -206,20 +206,20 @@ export default function NewsManagementPage() {
   async function togglePublishStatus(id: string, currentStatus: boolean) {
     try {
       const { error } = await supabase
-        .from('news')
+        .from('achievements')
         .update({ published: !currentStatus })
         .eq('id', id);
 
       if (error) throw error;
       
       // Update local state
-      setNews(news.map(item => 
+      setAchievements(achievements.map(item => 
         item.id === id ? {...item, published: !currentStatus} : item
       ));
       
       toast({
         title: "Success",
-        description: `News item ${!currentStatus ? 'published' : 'unpublished'} successfully`,
+        description: `Achievement ${!currentStatus ? 'published' : 'unpublished'} successfully`,
       });
     } catch (error: any) {
       console.error('Error updating publish status:', error);
@@ -232,37 +232,37 @@ export default function NewsManagementPage() {
   }
 
   async function handleBulkPublish(publish: boolean) {
-    if (selectedNews.length === 0) return;
+    if (selectedAchievements.length === 0) return;
     
     try {
       const { error } = await supabase
-        .from('news')
+        .from('achievements')
         .update({ published: publish })
-        .in('id', selectedNews);
+        .in('id', selectedAchievements);
 
       if (error) throw error;
       
       // Update local state
-      setNews(news.map(item => 
-        selectedNews.includes(item.id) ? {...item, published: publish} : item
+      setAchievements(achievements.map(item => 
+        selectedAchievements.includes(item.id) ? {...item, published: publish} : item
       ));
       
       toast({
         title: "Success",
-        description: `${selectedNews.length} news item(s) ${publish ? 'published' : 'unpublished'} successfully`,
+        description: `${selectedAchievements.length} achievement(s) ${publish ? 'published' : 'unpublished'} successfully`,
       });
     } catch (error: any) {
       console.error('Error in bulk publish:', error);
       toast({
         title: "Error",
-        description: error.message || `Failed to ${publish ? 'publish' : 'unpublish'} news items`,
+        description: error.message || `Failed to ${publish ? 'publish' : 'unpublish'} achievements`,
         variant: "destructive",
       });
     }
   }
 
-  function toggleSelectNewsItem(id: string) {
-    setSelectedNews(prev => 
+  function toggleSelectAchievement(id: string) {
+    setSelectedAchievements(prev => 
       prev.includes(id) 
         ? prev.filter(item => item !== id)
         : [...prev, id]
@@ -271,44 +271,45 @@ export default function NewsManagementPage() {
 
   function toggleSelectAll() {
     if (isAllSelected) {
-      setSelectedNews([]);
+      setSelectedAchievements([]);
     } else {
-      setSelectedNews(filteredNews.map(t => t.id));
+      setSelectedAchievements(filteredAchievements.map(t => t.id));
     }
   }
 
-  // Filter news items based on publish status
-  const statusFilteredNews = news.filter(item => {
+  // Filter achievements based on publish status
+  const statusFilteredAchievements = achievements.filter(item => {
     if (publishFilter === 'all') return true;
     if (publishFilter === 'published') return item.published;
     if (publishFilter === 'draft') return !item.published;
     return true;
   });
 
-  // Filter news items based on search category and query
-  const filteredNews = searchQuery.trim() === '' 
-    ? statusFilteredNews 
-    : statusFilteredNews.filter(item => {
+  // Filter achievements based on search category and query
+  const filteredAchievements = searchQuery.trim() === '' 
+    ? statusFilteredAchievements 
+    : statusFilteredAchievements.filter(item => {
         const query = searchQuery.toLowerCase();
         
         switch(searchCategory) {
           case 'title':
             return item.title_en.toLowerCase().includes(query) || 
                    item.title_bg.toLowerCase().includes(query);
-          case 'summary':
-            return item.summary_en.toLowerCase().includes(query) || 
-                   item.summary_bg.toLowerCase().includes(query);
-          case 'content':
-            return item.content_en.toLowerCase().includes(query) || 
-                   item.content_bg.toLowerCase().includes(query);
+          case 'description':
+            return item.description_en.toLowerCase().includes(query) || 
+                   item.description_bg.toLowerCase().includes(query);
+          case 'student':
+            return item.student_name?.toLowerCase().includes(query) || false;
+          case 'category':
+            return item.category.toLowerCase().includes(query);
           case 'all':
           default:
             return item.title_en.toLowerCase().includes(query) ||
                    item.title_bg.toLowerCase().includes(query) ||
-                   item.summary_en.toLowerCase().includes(query) ||
-                   item.summary_bg.toLowerCase().includes(query) ||
-                   item.content_en.toLowerCase().includes(query) ||
-                   item.content_bg.toLowerCase().includes(query);
+                   item.description_en.toLowerCase().includes(query) ||
+                   item.description_bg.toLowerCase().includes(query) ||
+                   item.student_name?.toLowerCase().includes(query) ||
+                   item.category.toLowerCase().includes(query);
         }
       });
 
@@ -326,13 +327,13 @@ export default function NewsManagementPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">News Management</h1>
-          <p className="text-muted-foreground">Manage news articles for the website</p>
+          <h1 className="text-2xl font-bold">Achievements Management</h1>
+          <p className="text-muted-foreground">Manage student and school achievements</p>
         </div>
         <Button asChild>
-          <Link href="/admin/news/new" className="flex items-center gap-2">
+          <Link href="/admin/achievements/new" className="flex items-center gap-2">
             <PlusCircle className="h-4 w-4" />
-            <span>Add News</span>
+            <span>Add Achievement</span>
           </Link>
         </Button>
       </div>
@@ -340,7 +341,7 @@ export default function NewsManagementPage() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle>All News Articles</CardTitle>
+            <CardTitle>All Achievements</CardTitle>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2">
                 <div className="relative flex items-center gap-2">
@@ -348,7 +349,7 @@ export default function NewsManagementPage() {
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="search"
-                      placeholder="Search news..."
+                      placeholder="Search achievements..."
                       className="pl-8 w-[250px]"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
@@ -364,15 +365,16 @@ export default function NewsManagementPage() {
                     <SelectContent>
                       <SelectItem value="all">All Fields</SelectItem>
                       <SelectItem value="title">Title</SelectItem>
-                      <SelectItem value="summary">Summary</SelectItem>
-                      <SelectItem value="content">Content</SelectItem>
+                      <SelectItem value="description">Description</SelectItem>
+                      <SelectItem value="student">Student</SelectItem>
+                      <SelectItem value="category">Category</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  onClick={fetchNews}
+                  onClick={fetchAchievements}
                   disabled={isLoading}
                 >
                   <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -405,9 +407,9 @@ export default function NewsManagementPage() {
             </TabsList>
           </Tabs>
           
-          {selectedNews.length > 0 && (
+          {selectedAchievements.length > 0 && (
             <div className="flex items-center mb-4 bg-muted p-2 rounded-md">
-              <span className="mr-2 font-medium">{selectedNews.length} selected</span>
+              <span className="mr-2 font-medium">{selectedAchievements.length} selected</span>
               <div className="flex gap-2">
                 <Button 
                   size="sm" 
@@ -436,7 +438,7 @@ export default function NewsManagementPage() {
                 <Button 
                   size="sm" 
                   variant="outline"
-                  onClick={() => setSelectedNews([])}
+                  onClick={() => setSelectedAchievements([])}
                 >
                   Clear Selection
                 </Button>
@@ -458,7 +460,7 @@ export default function NewsManagementPage() {
               ))}
             </div>
           ) : (
-            filteredNews.length > 0 ? (
+            filteredAchievements.length > 0 ? (
               <div className="border rounded-md">
                 <Table>
                   <TableHeader>
@@ -472,27 +474,35 @@ export default function NewsManagementPage() {
                       </TableHead>
                       <TableHead>Title</TableHead>
                       <TableHead>Date</TableHead>
+                      <TableHead>Category</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredNews.map((item) => (
+                    {filteredAchievements.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>
                           <Checkbox 
-                            checked={selectedNews.includes(item.id)}
-                            onCheckedChange={() => toggleSelectNewsItem(item.id)}
+                            checked={selectedAchievements.includes(item.id)}
+                            onCheckedChange={() => toggleSelectAchievement(item.id)}
                             aria-label={`Select ${item.title_en || item.title_bg}`}
                           />
                         </TableCell>
                         <TableCell>
-                          <div className="font-medium truncate max-w-[400px]">{item.title_en || item.title_bg}</div>
-                          <div className="text-sm text-muted-foreground">
-                            Created: {formatDate(item.created_at)}
-                          </div>
+                          <div className="font-medium truncate max-w-[300px]">{item.title_en || item.title_bg}</div>
+                          {item.student_name && (
+                            <div className="text-sm text-muted-foreground">
+                              Student: {item.student_name}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>{formatDate(item.date)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {item.category}
+                          </Badge>
+                        </TableCell>
                         <TableCell>
                           <Badge 
                             variant={item.published ? "default" : "outline"}
@@ -514,7 +524,7 @@ export default function NewsManagementPage() {
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuItem asChild>
                                 <Link 
-                                  href={`/admin/news/${item.id}/edit`}
+                                  href={`/admin/achievements/${item.id}/edit`}
                                   className="flex items-center gap-2 cursor-pointer"
                                 >
                                   <Pencil className="h-4 w-4" />
@@ -523,7 +533,7 @@ export default function NewsManagementPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
                                 <Link 
-                                  href={`/news/${item.id}`}
+                                  href={`/achievements/${item.id}`}
                                   className="flex items-center gap-2 cursor-pointer"
                                   target="_blank"
                                 >
@@ -568,19 +578,19 @@ export default function NewsManagementPage() {
               <div className="text-center py-10 text-muted-foreground">
                 {searchQuery.trim() !== '' ? (
                   <div>
-                    <p className="mb-2">No news items found matching "{searchQuery}"</p>
+                    <p className="mb-2">No achievements found matching "{searchQuery}"</p>
                     <Button variant="outline" onClick={() => setSearchQuery('')}>Clear Search</Button>
                   </div>
                 ) : publishFilter !== 'all' ? (
                   <div>
-                    <p className="mb-2">No {publishFilter} news items found</p>
-                    <Button variant="outline" onClick={() => setPublishFilter('all')}>Show All News</Button>
+                    <p className="mb-2">No {publishFilter} achievements found</p>
+                    <Button variant="outline" onClick={() => setPublishFilter('all')}>Show All Achievements</Button>
                   </div>
                 ) : (
                   <div>
-                    <p className="mb-2">No news items found</p>
+                    <p className="mb-2">No achievements found</p>
                     <Button asChild variant="outline">
-                      <Link href="/admin/news/new">Create your first news article</Link>
+                      <Link href="/admin/achievements/new">Create your first achievement</Link>
                     </Button>
                   </div>
                 )}

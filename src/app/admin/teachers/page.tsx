@@ -37,63 +37,63 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { deleteImage } from '@/lib/storage-helpers';
 
-interface NewsItem {
+interface TeacherItem {
   id: string;
+  name: string;
   title_en: string;
   title_bg: string;
-  summary_en: string;
-  summary_bg: string;
-  content_en: string;
-  content_bg: string;
-  date: string;
+  bio_en: string;
+  bio_bg: string;
   image?: string;
+  email?: string;
   published: boolean;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 }
 
-type SearchCategory = 'all' | 'title' | 'summary' | 'content';
+type SearchCategory = 'all' | 'name' | 'title' | 'email' | 'bio';
 type PublishStatus = 'all' | 'published' | 'draft';
 
-export default function NewsManagementPage() {
-  const [news, setNews] = useState<NewsItem[]>([]);
+export default function TeachersManagementPage() {
+  const [teachers, setTeachers] = useState<TeacherItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState<SearchCategory>('all');
   const [publishFilter, setPublishFilter] = useState<PublishStatus>('all');
   const [isDeleting, setIsDeleting] = useState(false);
-  const [selectedNews, setSelectedNews] = useState<string[]>([]);
+  const [selectedTeachers, setSelectedTeachers] = useState<string[]>([]);
   const [isAllSelected, setIsAllSelected] = useState(false);
 
   useEffect(() => {
-    fetchNews();
+    fetchTeachers();
   }, []);
 
   // Handle "select all" checkbox
   useEffect(() => {
-    if (filteredNews.length > 0 && selectedNews.length === filteredNews.length) {
+    if (filteredTeachers.length > 0 && selectedTeachers.length === filteredTeachers.length) {
       setIsAllSelected(true);
     } else {
       setIsAllSelected(false);
     }
-  }, [selectedNews, news, searchQuery, publishFilter]);
+  }, [selectedTeachers, teachers, searchQuery, publishFilter]);
 
-  async function fetchNews() {
+  async function fetchTeachers() {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('news')
+        .from('teachers')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('sort_order', { ascending: true });
 
       if (error) throw error;
-      setNews(data || []);
-      setSelectedNews([]);
+      setTeachers(data || []);
+      setSelectedTeachers([]);
     } catch (error) {
-      console.error('Error fetching news:', error);
+      console.error('Error fetching teachers:', error);
       toast({
         title: "Error",
-        description: "Failed to load news items",
+        description: "Failed to load teachers",
         variant: "destructive",
       });
     } finally {
@@ -102,47 +102,47 @@ export default function NewsManagementPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Are you sure you want to delete this news item?')) return;
+    if (!confirm('Are you sure you want to delete this teacher?')) return;
 
     try {
       setIsDeleting(true);
       
-      // Find the news item
-      const newsItem = news.find(item => item.id === id);
-      if (!newsItem) throw new Error('News item not found');
+      // Find the teacher
+      const teacher = teachers.find(item => item.id === id);
+      if (!teacher) throw new Error('Teacher not found');
       
       // Delete the image from storage if exists
-      if (newsItem.image) {
-        const deleted = await deleteImage(newsItem.image);
+      if (teacher.image) {
+        const deleted = await deleteImage(teacher.image);
         if (deleted) {
-          console.log('Successfully deleted image for news item:', id);
+          console.log('Successfully deleted image for teacher:', id);
         } else {
-          console.warn('Failed to delete image for news item:', id);
+          console.warn('Failed to delete image for teacher:', id);
           // Continue with deletion anyway
         }
       }
       
-      // Delete the news item from the database
+      // Delete the teacher from the database
       const { error } = await supabase
-        .from('news')
+        .from('teachers')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
       
       // Update local state
-      setNews(news.filter(item => item.id !== id));
-      setSelectedNews(selectedNews.filter(itemId => itemId !== id));
+      setTeachers(teachers.filter(item => item.id !== id));
+      setSelectedTeachers(selectedTeachers.filter(teacherId => teacherId !== id));
       
       toast({
         title: "Success",
-        description: "News item deleted successfully",
+        description: "Teacher deleted successfully",
       });
     } catch (error: any) {
-      console.error('Error deleting news:', error);
+      console.error('Error deleting teacher:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete news item",
+        description: error.message || "Failed to delete teacher",
         variant: "destructive",
       });
     } finally {
@@ -151,29 +151,29 @@ export default function NewsManagementPage() {
   }
 
   async function handleBulkDelete() {
-    if (selectedNews.length === 0) return;
+    if (selectedTeachers.length === 0) return;
     
-    if (!confirm(`Are you sure you want to delete ${selectedNews.length} news item(s)?`)) return;
+    if (!confirm(`Are you sure you want to delete ${selectedTeachers.length} teacher(s)?`)) return;
 
     try {
       setIsDeleting(true);
       
       let deletePromises = [];
       
-      // Process each selected news item
-      for (const id of selectedNews) {
-        const newsItem = news.find(item => item.id === id);
-        if (!newsItem) continue;
+      // Process each selected teacher
+      for (const id of selectedTeachers) {
+        const teacher = teachers.find(item => item.id === id);
+        if (!teacher) continue;
         
         // Delete image if exists
-        if (newsItem.image) {
-          const imageDeletePromise = deleteImage(newsItem.image);
+        if (teacher.image) {
+          const imageDeletePromise = deleteImage(teacher.image);
           deletePromises.push(imageDeletePromise);
         }
         
         // Delete from database
         const dbDeletePromise = supabase
-          .from('news')
+          .from('teachers')
           .delete()
           .eq('id', id);
           
@@ -184,18 +184,18 @@ export default function NewsManagementPage() {
       await Promise.all(deletePromises);
       
       // Update local state
-      setNews(news.filter(item => !selectedNews.includes(item.id)));
-      setSelectedNews([]);
+      setTeachers(teachers.filter(item => !selectedTeachers.includes(item.id)));
+      setSelectedTeachers([]);
       
       toast({
         title: "Success",
-        description: `${selectedNews.length} news item(s) deleted successfully`,
+        description: `${selectedTeachers.length} teacher(s) deleted successfully`,
       });
     } catch (error: any) {
       console.error('Error in bulk delete:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete some news items",
+        description: error.message || "Failed to delete some teachers",
         variant: "destructive",
       });
     } finally {
@@ -206,20 +206,20 @@ export default function NewsManagementPage() {
   async function togglePublishStatus(id: string, currentStatus: boolean) {
     try {
       const { error } = await supabase
-        .from('news')
+        .from('teachers')
         .update({ published: !currentStatus })
         .eq('id', id);
 
       if (error) throw error;
       
       // Update local state
-      setNews(news.map(item => 
+      setTeachers(teachers.map(item => 
         item.id === id ? {...item, published: !currentStatus} : item
       ));
       
       toast({
         title: "Success",
-        description: `News item ${!currentStatus ? 'published' : 'unpublished'} successfully`,
+        description: `Teacher ${!currentStatus ? 'published' : 'unpublished'} successfully`,
       });
     } catch (error: any) {
       console.error('Error updating publish status:', error);
@@ -232,37 +232,37 @@ export default function NewsManagementPage() {
   }
 
   async function handleBulkPublish(publish: boolean) {
-    if (selectedNews.length === 0) return;
+    if (selectedTeachers.length === 0) return;
     
     try {
       const { error } = await supabase
-        .from('news')
+        .from('teachers')
         .update({ published: publish })
-        .in('id', selectedNews);
+        .in('id', selectedTeachers);
 
       if (error) throw error;
       
       // Update local state
-      setNews(news.map(item => 
-        selectedNews.includes(item.id) ? {...item, published: publish} : item
+      setTeachers(teachers.map(item => 
+        selectedTeachers.includes(item.id) ? {...item, published: publish} : item
       ));
       
       toast({
         title: "Success",
-        description: `${selectedNews.length} news item(s) ${publish ? 'published' : 'unpublished'} successfully`,
+        description: `${selectedTeachers.length} teacher(s) ${publish ? 'published' : 'unpublished'} successfully`,
       });
     } catch (error: any) {
       console.error('Error in bulk publish:', error);
       toast({
         title: "Error",
-        description: error.message || `Failed to ${publish ? 'publish' : 'unpublish'} news items`,
+        description: error.message || `Failed to ${publish ? 'publish' : 'unpublish'} teachers`,
         variant: "destructive",
       });
     }
   }
 
-  function toggleSelectNewsItem(id: string) {
-    setSelectedNews(prev => 
+  function toggleSelectTeacher(id: string) {
+    setSelectedTeachers(prev => 
       prev.includes(id) 
         ? prev.filter(item => item !== id)
         : [...prev, id]
@@ -271,68 +271,59 @@ export default function NewsManagementPage() {
 
   function toggleSelectAll() {
     if (isAllSelected) {
-      setSelectedNews([]);
+      setSelectedTeachers([]);
     } else {
-      setSelectedNews(filteredNews.map(t => t.id));
+      setSelectedTeachers(filteredTeachers.map(t => t.id));
     }
   }
 
-  // Filter news items based on publish status
-  const statusFilteredNews = news.filter(item => {
+  // Filter teachers based on publish status
+  const statusFilteredTeachers = teachers.filter(item => {
     if (publishFilter === 'all') return true;
     if (publishFilter === 'published') return item.published;
     if (publishFilter === 'draft') return !item.published;
     return true;
   });
 
-  // Filter news items based on search category and query
-  const filteredNews = searchQuery.trim() === '' 
-    ? statusFilteredNews 
-    : statusFilteredNews.filter(item => {
+  // Filter teachers based on search category and query
+  const filteredTeachers = searchQuery.trim() === '' 
+    ? statusFilteredTeachers 
+    : statusFilteredTeachers.filter(item => {
         const query = searchQuery.toLowerCase();
         
         switch(searchCategory) {
+          case 'name':
+            return item.name.toLowerCase().includes(query);
           case 'title':
             return item.title_en.toLowerCase().includes(query) || 
                    item.title_bg.toLowerCase().includes(query);
-          case 'summary':
-            return item.summary_en.toLowerCase().includes(query) || 
-                   item.summary_bg.toLowerCase().includes(query);
-          case 'content':
-            return item.content_en.toLowerCase().includes(query) || 
-                   item.content_bg.toLowerCase().includes(query);
+          case 'email':
+            return item.email?.toLowerCase().includes(query) || false;
+          case 'bio':
+            return item.bio_en.toLowerCase().includes(query) || 
+                   item.bio_bg.toLowerCase().includes(query);
           case 'all':
           default:
-            return item.title_en.toLowerCase().includes(query) ||
+            return item.name.toLowerCase().includes(query) ||
+                   item.title_en.toLowerCase().includes(query) ||
                    item.title_bg.toLowerCase().includes(query) ||
-                   item.summary_en.toLowerCase().includes(query) ||
-                   item.summary_bg.toLowerCase().includes(query) ||
-                   item.content_en.toLowerCase().includes(query) ||
-                   item.content_bg.toLowerCase().includes(query);
+                   item.email?.toLowerCase().includes(query) ||
+                   item.bio_en.toLowerCase().includes(query) ||
+                   item.bio_bg.toLowerCase().includes(query);
         }
       });
-
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">News Management</h1>
-          <p className="text-muted-foreground">Manage news articles for the website</p>
+          <h1 className="text-2xl font-bold">Teachers Management</h1>
+          <p className="text-muted-foreground">Manage school teachers and staff</p>
         </div>
         <Button asChild>
-          <Link href="/admin/news/new" className="flex items-center gap-2">
+          <Link href="/admin/teachers/new" className="flex items-center gap-2">
             <PlusCircle className="h-4 w-4" />
-            <span>Add News</span>
+            <span>Add Teacher</span>
           </Link>
         </Button>
       </div>
@@ -340,7 +331,7 @@ export default function NewsManagementPage() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle>All News Articles</CardTitle>
+            <CardTitle>All Teachers</CardTitle>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2">
                 <div className="relative flex items-center gap-2">
@@ -348,7 +339,7 @@ export default function NewsManagementPage() {
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="search"
-                      placeholder="Search news..."
+                      placeholder="Search teachers..."
                       className="pl-8 w-[250px]"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
@@ -363,16 +354,17 @@ export default function NewsManagementPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Fields</SelectItem>
+                      <SelectItem value="name">Name</SelectItem>
                       <SelectItem value="title">Title</SelectItem>
-                      <SelectItem value="summary">Summary</SelectItem>
-                      <SelectItem value="content">Content</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="bio">Biography</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <Button 
                   variant="outline" 
-                  size="icon" 
-                  onClick={fetchNews}
+                  size="icon"
+                  onClick={fetchTeachers}
                   disabled={isLoading}
                 >
                   <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -405,9 +397,9 @@ export default function NewsManagementPage() {
             </TabsList>
           </Tabs>
           
-          {selectedNews.length > 0 && (
+          {selectedTeachers.length > 0 && (
             <div className="flex items-center mb-4 bg-muted p-2 rounded-md">
-              <span className="mr-2 font-medium">{selectedNews.length} selected</span>
+              <span className="mr-2 font-medium">{selectedTeachers.length} selected</span>
               <div className="flex gap-2">
                 <Button 
                   size="sm" 
@@ -436,7 +428,7 @@ export default function NewsManagementPage() {
                 <Button 
                   size="sm" 
                   variant="outline"
-                  onClick={() => setSelectedNews([])}
+                  onClick={() => setSelectedTeachers([])}
                 >
                   Clear Selection
                 </Button>
@@ -458,7 +450,7 @@ export default function NewsManagementPage() {
               ))}
             </div>
           ) : (
-            filteredNews.length > 0 ? (
+            filteredTeachers.length > 0 ? (
               <div className="border rounded-md">
                 <Table>
                   <TableHeader>
@@ -470,29 +462,38 @@ export default function NewsManagementPage() {
                           aria-label="Select all"
                         />
                       </TableHead>
+                      <TableHead>Name</TableHead>
                       <TableHead>Title</TableHead>
-                      <TableHead>Date</TableHead>
+                      <TableHead>Email</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Order</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredNews.map((item) => (
+                    {filteredTeachers.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>
                           <Checkbox 
-                            checked={selectedNews.includes(item.id)}
-                            onCheckedChange={() => toggleSelectNewsItem(item.id)}
-                            aria-label={`Select ${item.title_en || item.title_bg}`}
+                            checked={selectedTeachers.includes(item.id)}
+                            onCheckedChange={() => toggleSelectTeacher(item.id)}
+                            aria-label={`Select ${item.name}`}
                           />
                         </TableCell>
                         <TableCell>
-                          <div className="font-medium truncate max-w-[400px]">{item.title_en || item.title_bg}</div>
-                          <div className="text-sm text-muted-foreground">
-                            Created: {formatDate(item.created_at)}
-                          </div>
+                          <div className="font-medium">{item.name}</div>
                         </TableCell>
-                        <TableCell>{formatDate(item.date)}</TableCell>
+                        <TableCell>{item.title_en}</TableCell>
+                        <TableCell>
+                          {item.email && (
+                            <a 
+                              href={`mailto:${item.email}`} 
+                              className="text-blue-600 hover:underline"
+                            >
+                              {item.email}
+                            </a>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Badge 
                             variant={item.published ? "default" : "outline"}
@@ -502,6 +503,7 @@ export default function NewsManagementPage() {
                             {item.published ? "Published" : "Draft"}
                           </Badge>
                         </TableCell>
+                        <TableCell>{item.sort_order}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -514,7 +516,7 @@ export default function NewsManagementPage() {
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuItem asChild>
                                 <Link 
-                                  href={`/admin/news/${item.id}/edit`}
+                                  href={`/admin/teachers/${item.id}/edit`}
                                   className="flex items-center gap-2 cursor-pointer"
                                 >
                                   <Pencil className="h-4 w-4" />
@@ -523,7 +525,7 @@ export default function NewsManagementPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
                                 <Link 
-                                  href={`/news/${item.id}`}
+                                  href={`/bg/team/${item.id}`}
                                   className="flex items-center gap-2 cursor-pointer"
                                   target="_blank"
                                 >
@@ -568,19 +570,19 @@ export default function NewsManagementPage() {
               <div className="text-center py-10 text-muted-foreground">
                 {searchQuery.trim() !== '' ? (
                   <div>
-                    <p className="mb-2">No news items found matching "{searchQuery}"</p>
+                    <p className="mb-2">No teachers found matching "{searchQuery}"</p>
                     <Button variant="outline" onClick={() => setSearchQuery('')}>Clear Search</Button>
                   </div>
                 ) : publishFilter !== 'all' ? (
                   <div>
-                    <p className="mb-2">No {publishFilter} news items found</p>
-                    <Button variant="outline" onClick={() => setPublishFilter('all')}>Show All News</Button>
+                    <p className="mb-2">No {publishFilter} teachers found</p>
+                    <Button variant="outline" onClick={() => setPublishFilter('all')}>Show All Teachers</Button>
                   </div>
                 ) : (
                   <div>
-                    <p className="mb-2">No news items found</p>
+                    <p className="mb-2">No teachers found</p>
                     <Button asChild variant="outline">
-                      <Link href="/admin/news/new">Create your first news article</Link>
+                      <Link href="/admin/teachers/new">Add your first teacher</Link>
                     </Button>
                   </div>
                 )}
