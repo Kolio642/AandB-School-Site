@@ -5,7 +5,15 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { 
+  LogOut, 
+  Home, 
+  Newspaper, 
+  Award, 
+  Users,
+  Menu, 
+  X
+} from 'lucide-react';
 import type { Metadata } from 'next';
 
 // Opt out of static generation for all admin routes
@@ -20,6 +28,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
   const { signOut, user, isLoading: authLoading } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Redirect to login if not authenticated (except on login page)
   useEffect(() => {
@@ -65,78 +74,129 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Show loading state while checking authentication
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin h-10 w-10 rounded-full border-t-2 border-b-2 border-primary"></div>
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin h-10 w-10 rounded-full border-t-2 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground animate-pulse">Loading admin panel...</p>
+        </div>
       </div>
     );
   }
 
-  const NavLink = ({ href, children, isActive = false }: { href: string; children: React.ReactNode; isActive?: boolean }) => (
-    <a
+  const navItems = [
+    { href: '/admin/dashboard', label: 'Dashboard', icon: <Home className="h-4 w-4" />, isActive: pathname === '/admin/dashboard' },
+    { href: '/admin/news', label: 'News', icon: <Newspaper className="h-4 w-4" />, isActive: pathname.startsWith('/admin/news') },
+    { href: '/admin/achievements', label: 'Achievements', icon: <Award className="h-4 w-4" />, isActive: pathname.startsWith('/admin/achievements') },
+    { href: '/admin/teachers', label: 'Teachers', icon: <Users className="h-4 w-4" />, isActive: pathname.startsWith('/admin/teachers') },
+  ];
+
+  const NavLink = ({ href, label, icon, isActive = false }: { href: string; label: string; icon: React.ReactNode; isActive?: boolean }) => (
+    <Link
       href={href}
-      className={`${isActive ? 'font-semibold' : ''} hover:text-primary transition-colors`}
+      className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
+        isActive 
+          ? 'bg-primary text-primary-foreground font-medium' 
+          : 'hover:bg-muted'
+      }`}
+      onClick={() => setIsMobileMenuOpen(false)}
     >
-      {children}
-    </a>
+      {icon}
+      {label}
+    </Link>
   );
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b bg-background">
-        <div className="container flex h-16 items-center justify-between py-4">
-          <div className="flex items-center gap-6">
-            <a href="/admin/dashboard" className="text-xl font-bold">
-              A&B School Admin
-            </a>
-            <nav className="hidden md:flex items-center gap-6">
-              <NavLink
-                href="/admin/dashboard"
-                isActive={pathname === '/admin/dashboard'}
-              >
-                Dashboard
-              </NavLink>
-              <NavLink
-                href="/admin/news"
-                isActive={pathname.startsWith('/admin/news')}
-              >
-                News
-              </NavLink>
-              <NavLink
-                href="/admin/achievements"
-                isActive={pathname.startsWith('/admin/achievements')}
-              >
-                Achievements
-              </NavLink>
-              <NavLink
-                href="/admin/teachers"
-                isActive={pathname.startsWith('/admin/teachers')}
-              >
-                Teachers
-              </NavLink>
-              <NavLink
-                href="/admin/courses"
-                isActive={pathname.startsWith('/admin/courses')}
-              >
-                Courses
-              </NavLink>
-            </nav>
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <header className="border-b bg-white sticky top-0 z-50 shadow-sm">
+        <div className="container mx-auto px-4 flex h-16 items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Link href="/admin/dashboard" className="text-xl font-bold text-primary flex items-center gap-2">
+              <span className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-md w-8 h-8 flex items-center justify-center text-white shadow-sm">A&B</span>
+              <span className="hidden md:inline-block">Admin Panel</span>
+            </Link>
+            
+            {/* Mobile menu button */}
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="md:hidden ml-2"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
           </div>
-          <Button 
-            onClick={handleSignOut}
-            disabled={isLoading}
-            className="gap-2"
-          >
-            {isLoading ? 'Signing out...' : 'Sign Out'}
-            <LogOut className="h-4 w-4" />
-          </Button>
+          
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-1">
+            {navItems.map((item) => (
+              <NavLink 
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                icon={item.icon}
+                isActive={item.isActive}
+              />
+            ))}
+          </nav>
+          
+          <div className="flex items-center">
+            {user && (
+              <div className="mr-4 hidden md:block">
+                <div className="flex items-center gap-2">
+                  <div className="bg-primary/10 text-primary rounded-full w-8 h-8 flex items-center justify-center">
+                    {user.email?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <div className="hidden lg:block">
+                    <p className="text-sm font-medium">{user.email}</p>
+                    <p className="text-xs text-muted-foreground">Administrator</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <Button 
+              onClick={handleSignOut}
+              disabled={isLoading}
+              className="gap-2"
+              variant="destructive"
+              size="sm"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">{isLoading ? 'Signing out...' : 'Sign Out'}</span>
+            </Button>
+          </div>
         </div>
+        
+        {/* Mobile Navigation */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t">
+            <div className="container mx-auto px-4 py-3 flex flex-col gap-1">
+              {navItems.map((item) => (
+                <NavLink 
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  isActive={item.isActive}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </header>
-      <main className="flex-1 container py-6">
-        {children}
+      
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          {children}
+        </div>
       </main>
-      <footer className="border-t py-4 bg-background">
-        <div className="container text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} A&B School Admin Panel
+      
+      <footer className="border-t py-4 bg-white">
+        <div className="container mx-auto px-4 flex items-center justify-between text-sm text-muted-foreground">
+          <div>&copy; {new Date().getFullYear()} A&B School Admin Panel</div>
+          <div className="flex items-center gap-4">
+            <Link href="/bg" className="hover:text-primary">View Website</Link>
+            <span>Version 1.0</span>
+          </div>
         </div>
       </footer>
     </div>

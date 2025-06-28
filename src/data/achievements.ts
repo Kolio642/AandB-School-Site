@@ -111,23 +111,27 @@ export async function getAllAchievements(): Promise<Achievement[]> {
   try {
     return await cachedFetch('all_achievements', async () => {
       // Try to fetch from Supabase first
-      const { data, error } = await supabase
-        .from('achievements')
-        .select('*')
-        .order('date', { ascending: false })
-        .eq('published', true);
-      
-      if (error) {
-        console.error('Error fetching achievements from Supabase:', error);
-        // Fallback to static data
-        return staticAchievements;
-      }
-      
-      if (data && data.length > 0) {
-        return data.map(mapSupabaseToAchievement);
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('achievements')
+            .select('*')
+            .order('date', { ascending: false })
+            .eq('published', true);
+          
+          if (error) {
+            console.error('Error fetching achievements from Supabase:', error);
+          } else if (data && data.length > 0) {
+            console.log(`Successfully fetched ${data.length} achievements from Supabase`);
+            return data.map(mapSupabaseToAchievement);
+          }
+        } catch (supabaseError) {
+          console.error("Exception during Supabase achievements fetch:", supabaseError);
+        }
       }
       
       // Fallback to static data if no achievements in Supabase
+      console.log("Falling back to static achievements data");
       return staticAchievements;
     });
   } catch (error) {
@@ -141,26 +145,32 @@ export async function getAllAchievements(): Promise<Achievement[]> {
 export async function getAchievementById(id: string): Promise<Achievement | undefined> {
   try {
     return await cachedFetch(`achievement_${id}`, async () => {
-      // Check static achievements first (for backward compatibility)
+      // Try to fetch from Supabase first
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('achievements')
+            .select('*')
+            .eq('id', id)
+            .eq('published', true)
+            .maybeSingle();
+          
+          if (error) {
+            console.error('Error fetching achievement from Supabase:', error);
+          } else if (data) {
+            console.log(`Found achievement by ID: ${id}`);
+            return mapSupabaseToAchievement(data);
+          }
+        } catch (supabaseError) {
+          console.error("Exception during Supabase achievement fetch by ID:", supabaseError);
+        }
+      }
+      
+      // Check static achievements (for backward compatibility)
+      console.log(`Checking static achievements for ID: ${id}`);
       const staticAchievement = staticAchievements.find(a => a.id === id);
       if (staticAchievement) {
         return staticAchievement;
-      }
-      
-      // Try to fetch from Supabase
-      const { data, error } = await supabase
-        .from('achievements')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-      
-      if (error) {
-        console.error('Error fetching achievement from Supabase:', error);
-        return undefined;
-      }
-      
-      if (data) {
-        return mapSupabaseToAchievement(data);
       }
       
       return undefined;
@@ -174,8 +184,10 @@ export async function getAchievementById(id: string): Promise<Achievement | unde
 // Get achievements by category
 export async function getAchievementsByCategory(category: string): Promise<Achievement[]> {
   try {
-    const allAchievements = await getAllAchievements();
-    return allAchievements.filter(achievement => achievement.category === category);
+    return await cachedFetch(`achievements_category_${category}`, async () => {
+      const allAchievements = await getAllAchievements();
+      return allAchievements.filter(achievement => achievement.category === category);
+    });
   } catch (error) {
     console.error('Error in getAchievementsByCategory:', error);
     return [];
@@ -193,6 +205,10 @@ export async function getLatestAchievements(count: number = 5): Promise<Achievem
     });
   } catch (error) {
     console.error('Error in getLatestAchievements:', error);
-    return [];
+    // Fallback to static data
+    const sortedAchievements = [...staticAchievements].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    return sortedAchievements.slice(0, count);
   }
 } 

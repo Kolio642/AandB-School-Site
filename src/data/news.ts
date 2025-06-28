@@ -163,20 +163,27 @@ export async function getAllNews(): Promise<NewsItem[]> {
     return await cachedFetch('all_news', async () => {
       // First try from Supabase
       if (supabase) {
-        const { data, error } = await supabase
-          .from('news')
-          .select('*')
-          .eq('published', true)
-          .order('created_at', { ascending: false });
-          
-        if (error) {
-          console.error("Error fetching news from Supabase:", error);
-        } else if (data && data.length > 0) {
-          return data.map(mapSupabaseNewsToNewsItem);
+        try {
+          const { data, error } = await supabase
+            .from('news')
+            .select('*')
+            .eq('published', true)
+            .order('date', { ascending: false });
+            
+          if (error) {
+            console.error("Error fetching news from Supabase:", error);
+          } else if (data && data.length > 0) {
+            // Successfully fetched data from Supabase
+            console.log(`Successfully fetched ${data.length} news items from Supabase`);
+            return data.map(mapSupabaseNewsToNewsItem);
+          }
+        } catch (supabaseError) {
+          console.error("Exception during Supabase news fetch:", supabaseError);
         }
       }
       
       // Fallback to static data if Supabase is not available or returned no results
+      console.log("Falling back to static news data");
       return [...newsItems].sort((a, b) => {
         return new Date(b.date).getTime() - new Date(a.date).getTime();
       });
@@ -198,15 +205,20 @@ export async function getNewsById(id: string): Promise<NewsItem | undefined> {
     return await cachedFetch(`news_${id}`, async () => {
       // First try from Supabase
       if (supabase) {
-        // Try to find by slug first (preferred)
-        let { data, error } = await supabase
-          .from('news')
-          .select('*')
-          .eq('slug', id)
-          .eq('published', true)
-          .single();
+        try {
+          // Try to find by slug first (preferred)
+          let { data, error } = await supabase
+            .from('news')
+            .select('*')
+            .eq('slug', id)
+            .eq('published', true)
+            .single();
+            
+          if (!error && data) {
+            console.log(`Found news by slug: ${id}`);
+            return mapSupabaseNewsToNewsItem(data);
+          }
           
-        if (error) {
           // If not found by slug, try by ID
           const result = await supabase
             .from('news')
@@ -214,18 +226,20 @@ export async function getNewsById(id: string): Promise<NewsItem | undefined> {
             .eq('id', id)
             .eq('published', true)
             .single();
-            
+              
           if (result.error) {
             console.error("Error fetching news by ID from Supabase:", result.error);
           } else if (result.data) {
+            console.log(`Found news by ID: ${id}`);
             return mapSupabaseNewsToNewsItem(result.data);
           }
-        } else if (data) {
-          return mapSupabaseNewsToNewsItem(data);
+        } catch (supabaseError) {
+          console.error("Exception during Supabase news fetch by ID:", supabaseError);
         }
       }
       
       // Fallback to static data
+      console.log(`Falling back to static news data for ID: ${id}`);
       return newsItems.find(item => item.id === id);
     });
   } catch (error) {

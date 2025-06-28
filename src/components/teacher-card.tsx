@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { Teacher } from '@/lib/database';
+import { Teacher } from '@/data/teachers';
 import { Locale } from '@/lib/i18n';
 
 interface TeacherCardProps {
@@ -8,9 +8,7 @@ interface TeacherCardProps {
 }
 
 export function TeacherCard({ teacher, locale }: TeacherCardProps) {
-  const isEnglish = locale === 'en';
-  const title = isEnglish ? teacher.title_en : teacher.title_bg;
-  const bio = isEnglish ? teacher.bio_en : teacher.bio_bg;
+  const translation = teacher.translations[locale];
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
@@ -30,7 +28,7 @@ export function TeacherCard({ teacher, locale }: TeacherCardProps) {
       </div>
       <div className="p-4">
         <h3 className="text-lg font-semibold">{teacher.name}</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{title}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{translation.title}</p>
         {teacher.email && (
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             <a href={`mailto:${teacher.email}`} className="hover:underline">
@@ -39,7 +37,7 @@ export function TeacherCard({ teacher, locale }: TeacherCardProps) {
           </p>
         )}
         <div className="prose prose-sm dark:prose-invert mt-4">
-          <p className="text-gray-700 dark:text-gray-300 text-sm">{bio}</p>
+          <p className="text-gray-700 dark:text-gray-300 text-sm">{translation.bio}</p>
         </div>
       </div>
     </div>

@@ -10,6 +10,9 @@ import { toast } from '@/components/ui/use-toast';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Lock, Mail, LogIn } from 'lucide-react';
+import Link from 'next/link';
 
 // Login form schema
 const loginSchema = z.object({
@@ -23,7 +26,7 @@ export default function AdminLoginPage() {
   const { user, isLoading, signIn } = useAuth();
   const router = useRouter();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
@@ -70,54 +73,102 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Admin Login
-          </h2>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md">
+        <div className="flex flex-col items-center mb-6">
+          <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-md w-16 h-16 flex items-center justify-center text-white text-2xl font-bold mb-4 shadow-md">
+            A&B
+          </div>
+          <h1 className="text-3xl font-extrabold text-center text-gray-900">
+            Admin Portal
+          </h1>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to access the admin dashboard
+            Sign in to manage the A&B School website
           </p>
         </div>
         
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                {...register('email')}
-                className="mt-1"
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-              )}
-            </div>
-            
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                {...register('password')}
-                className="mt-1"
-              />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-              )}
-            </div>
-            
-            <div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Signing in...' : 'Sign in'}
+        <Card className="w-full shadow-lg border-0">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold text-center">Sign In</CardTitle>
+            <CardDescription className="text-center">
+              Enter your credentials to access the admin panel
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="email" className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  Email
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="admin@example.com"
+                    className={`pr-2 ${errors.email ? 'border-red-300 focus-visible:ring-red-300' : ''}`}
+                    {...register('email')}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="text-sm font-medium text-red-500">{errors.email.message}</p>
+                )}
+              </div>
+              
+              <div className="space-y-1">
+                <Label htmlFor="password" className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    className={`pr-2 ${errors.password ? 'border-red-300 focus-visible:ring-red-300' : ''}`}
+                    {...register('password')}
+                  />
+                </div>
+                {errors.password && (
+                  <p className="text-sm font-medium text-red-500">{errors.password.message}</p>
+                )}
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full h-10 mt-6" 
+                disabled={isLoading || isSubmitting}
+              >
+                {isLoading || isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    <span>Signing in...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <LogIn className="h-4 w-4" />
+                    <span>Sign in</span>
+                  </div>
+                )}
               </Button>
-            </div>
-          </form>
-        </div>
+            </form>
+          </CardContent>
+          
+          <CardFooter className="flex justify-between border-t p-4">
+            <Link 
+              href="/bg" 
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              Back to Website
+            </Link>
+            <p className="text-sm text-muted-foreground">
+              A&B School Admin
+            </p>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { getTeachers } from '@/lib/database';
+import { Teacher, getAllTeachers } from '@/data/teachers';
 import { TeacherCard } from '@/components/teacher-card';
 import { Locale } from '@/lib/i18n';
 
@@ -9,7 +9,7 @@ interface TeachersSectionProps {
 }
 
 export async function TeachersSection({ locale, title, subtitle }: TeachersSectionProps) {
-  const teachers = await getTeachers(true);
+  const teachers = await getAllTeachers(true);
   
   if (teachers.length === 0) {
     return null;
